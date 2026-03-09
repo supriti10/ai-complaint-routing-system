@@ -1,0 +1,9 @@
+.venv/
+dataset/
+backend/app/ml/model/
+
+*.safetensors
+*.pt
+*.bin
+*.pkl
+__pycache__/

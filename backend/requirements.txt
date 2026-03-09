@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+passlib[bcrypt]
+python-jose
+transformers
+torch
+pandas
+scikit-learn
+datasets
+python-multipart
