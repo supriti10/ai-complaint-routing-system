@@ -1,32 +1,34 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+
 from app.database import get_db
 from app.ml.predict import predict_department
 from app.utils.priority import get_priority
-from app.schemas import ComplaintCreate, ComplaintResponse
 from app.utils.similarity import find_similar_complaint
-from app.schemas import StatusUpdate
+
+from app.schemas import ComplaintCreate, StatusUpdate
+from app.models import Complaint
+
 
 router = APIRouter(
     prefix="/complaints",
     tags=["Complaints"]
 )
 
-# Submit complaint
+
+# ✅ Submit complaint
 @router.post("/submit")
 def submit_complaint(complaint: ComplaintCreate, db: Session = Depends(get_db)):
 
-    # Predict department and priority
+    # 🔮 Predict department & priority
     department = predict_department(complaint.complaint_text)
     priority = get_priority(complaint.complaint_text)
 
-    # Fetch existing complaints
-    existing_query = text("SELECT complaint_text FROM complaints")
-    result = db.execute(existing_query)
-    old_texts = [row.complaint_text for row in result]
+    # 📥 Fetch existing complaints (ORM)
+    existing_complaints = db.query(Complaint.complaint_text).all()
+    old_texts = [c[0] for c in existing_complaints]
 
-    # Check similarity
+    # 🔍 Check similarity
     index, score = find_similar_complaint(
         complaint.complaint_text,
         old_texts
@@ -40,22 +42,18 @@ def submit_complaint(complaint: ComplaintCreate, db: Session = Depends(get_db)):
             "similarity_score": float(score)
         }
 
-    # Insert complaint anyway
-    query = text("""
-        INSERT INTO complaints
-        (complaint_text, predicted_department, priority, status, user_id)
-        VALUES
-        (:text, :dept, :priority, 'Pending', :user_id)
-    """)
+    # 💾 Save complaint (ORM way)
+    new_complaint = Complaint(
+        complaint_text=complaint.complaint_text,
+        predicted_department=department,
+        priority=priority,
+        status="Pending",
+        user_id=complaint.user_id
+    )
 
-    db.execute(query, {
-        "text": complaint.complaint_text,
-        "dept": department,
-        "priority": priority,
-        "user_id": complaint.user_id
-    })
-
+    db.add(new_complaint)
     db.commit()
+    db.refresh(new_complaint)
 
     return {
         "message": "Complaint submitted successfully",
@@ -64,25 +62,18 @@ def submit_complaint(complaint: ComplaintCreate, db: Session = Depends(get_db)):
         "duplicate_check": duplicate_warning
     }
 
-# Officer updates complaint status
+
+# ✅ Update complaint status
 @router.put("/update-status")
 def update_complaint_status(data: StatusUpdate, db: Session = Depends(get_db)):
 
-    query = text("""
-        UPDATE complaints
-        SET status = :status
-        WHERE id = :complaint_id
-    """)
+    complaint = db.query(Complaint).filter(Complaint.id == data.complaint_id).first()
 
-    result = db.execute(query, {
-        "status": data.status,
-        "complaint_id": data.complaint_id
-    })
-
-    db.commit()
-
-    if result.rowcount == 0:
+    if not complaint:
         return {"message": "Complaint not found"}
+
+    complaint.status = data.status
+    db.commit()
 
     return {
         "message": "Status updated successfully",
@@ -90,25 +81,22 @@ def update_complaint_status(data: StatusUpdate, db: Session = Depends(get_db)):
         "new_status": data.status
     }
 
-# Get all complaints
+
+# ✅ Get all complaints
 @router.get("/")
 def get_complaints(db: Session = Depends(get_db)):
 
-    query = text("SELECT * FROM complaints")
+    complaints = db.query(Complaint).order_by(Complaint.id.desc()).all()
 
-    result = db.execute(query)
-
-    complaints = []
-
-    for row in result:
-        complaints.append({
-            "id": row.id,
-            "complaint_text": row.complaint_text,
-            "predicted_department": row.predicted_department,
-            "priority": row.priority,
-            "status": row.status,
-            "user_id": row.user_id,
-            "created_at": str(row.created_at)
-        })
-
-    return complaints
+    return [
+        {
+            "id": c.id,
+            "complaint_text": c.complaint_text,
+            "predicted_department": c.predicted_department,
+            "priority": c.priority,
+            "status": c.status,
+            "user_id": c.user_id,
+            "created_at": str(c.created_at)
+        }
+        for c in complaints
+    ]

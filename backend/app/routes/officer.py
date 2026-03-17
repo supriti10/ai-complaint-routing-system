@@ -1,55 +1,69 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+
 from app.database import get_db
+from app.models import Complaint
+
 
 router = APIRouter(
     prefix="/officer",
     tags=["Officer"]
 )
 
-# Get complaints assigned to a department
+
+# ✅ Get complaints assigned to a department
 @router.get("/complaints/{department}")
-def get_department_complaints(department: str, db: Session = Depends(get_db)):
+def get_department_complaints(
+    department: str,
+    db: Session = Depends(get_db)
+):
 
-    query = text("""
-        SELECT * FROM complaints
-        WHERE predicted_department = :dept
-    """)
+    complaints = db.query(Complaint).filter(
+        Complaint.predicted_department == department
+    ).order_by(Complaint.id.desc()).all()
 
-    result = db.execute(query, {"dept": department})
-
-    complaints = []
-
-    for row in result:
-        complaints.append({
-            "id": row.id,
-            "complaint_text": row.complaint_text,
-            "predicted_department": row.predicted_department,
-            "priority": row.priority,
-            "status": row.status,
-            "user_id": row.user_id,
-            "created_at": str(row.created_at)
-        })
-
-    return complaints
+    return [
+        {
+            "id": c.id,
+            "complaint_text": c.complaint_text,
+            "predicted_department": c.predicted_department,
+            "priority": c.priority,
+            "status": c.status,
+            "user_id": c.user_id,
+            "created_at": str(c.created_at)
+        }
+        for c in complaints
+    ]
 
 
-# Officer updates complaint status
+# ✅ Officer updates complaint status
 @router.put("/complaints/{complaint_id}")
-def update_complaint_status(complaint_id: int, status: str, db: Session = Depends(get_db)):
+def update_status(
+    complaint_id: int,
+    status: str = Query(..., description="New status (Pending/In Progress/Resolved)"),
+    department: str = Query(..., description="Officer's department"),
+    db: Session = Depends(get_db)
+):
 
-    query = text("""
-        UPDATE complaints
-        SET status = :status
-        WHERE id = :id
-    """)
+    # 🔍 Fetch complaint
+    complaint = db.query(Complaint).filter(
+        Complaint.id == complaint_id
+    ).first()
 
-    result = db.execute(query, {"status": status, "id": complaint_id})
-    #db.execute(query, {"status": status, "id": complaint_id})
+    if not complaint:
+        return {"error": "Complaint not found"}
+
+    # 🚫 Check department authorization
+    if complaint.predicted_department != department:
+        return {"error": "Unauthorized to update this complaint"}
+
+    # ✅ Update status
+    complaint.status = status
     db.commit()
+    db.refresh(complaint)
 
-    if result.rowcount == 0:
-        return {"message": "Complaint not found"}
-
-    return {"message": "Complaint status updated", "id": complaint_id, "new_status": status}
+    return {
+        "message": "Status updated successfully",
+        "complaint_id": complaint_id,
+        "new_status": complaint.status
+    }
