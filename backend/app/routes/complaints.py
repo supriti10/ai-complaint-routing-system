@@ -8,6 +8,7 @@ from app.utils.similarity import find_similar_complaint
 
 from app.schemas import ComplaintCreate, StatusUpdate
 from app.models import Complaint
+from app.auth import get_current_active_user
 
 
 router = APIRouter(
@@ -16,39 +17,42 @@ router = APIRouter(
 )
 
 
-# ✅ Submit complaint
+# ✅ Submit complaint (AUTO USER FROM TOKEN)
 @router.post("/submit")
-def submit_complaint(complaint: ComplaintCreate, db: Session = Depends(get_db)):
+def submit_complaint(
+    complaint: ComplaintCreate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_active_user)
+):
 
     # 🔮 Predict department & priority
     department = predict_department(complaint.complaint_text)
     priority = get_priority(complaint.complaint_text)
 
-    # 📥 Fetch existing complaints (ORM)
-    existing_complaints = db.query(Complaint.complaint_text).all()
-    old_texts = [c[0] for c in existing_complaints]
+    # 📥 Existing complaints
+    existing = db.query(Complaint.complaint_text).all()
+    old_texts = [c[0] for c in existing]
 
-    # 🔍 Check similarity
-    index, score = find_similar_complaint(
+    # 🔍 Similarity check
+    _, score = find_similar_complaint(
         complaint.complaint_text,
         old_texts
     )
 
     duplicate_warning = None
-
     if score > 0.85:
         duplicate_warning = {
-            "message": "Similar complaint already exists",
+            "message": "Similar complaint exists",
             "similarity_score": float(score)
         }
 
-    # 💾 Save complaint (ORM way)
+    # 💾 Save complaint (user_id from JWT)
     new_complaint = Complaint(
         complaint_text=complaint.complaint_text,
         predicted_department=department,
         priority=priority,
         status="Pending",
-        user_id=complaint.user_id
+        user_id=user.get("sub")   # 🔥 IMPORTANT
     )
 
     db.add(new_complaint)
@@ -63,11 +67,16 @@ def submit_complaint(complaint: ComplaintCreate, db: Session = Depends(get_db)):
     }
 
 
-# ✅ Update complaint status
+# ✅ Update complaint status (generic)
 @router.put("/update-status")
-def update_complaint_status(data: StatusUpdate, db: Session = Depends(get_db)):
+def update_complaint_status(
+    data: StatusUpdate,
+    db: Session = Depends(get_db)
+):
 
-    complaint = db.query(Complaint).filter(Complaint.id == data.complaint_id).first()
+    complaint = db.query(Complaint).filter(
+        Complaint.id == data.complaint_id
+    ).first()
 
     if not complaint:
         return {"message": "Complaint not found"}
@@ -82,9 +91,12 @@ def update_complaint_status(data: StatusUpdate, db: Session = Depends(get_db)):
     }
 
 
-# ✅ Get all complaints
-@router.get("/")
-def get_complaints(db: Session = Depends(get_db)):
+# ✅ Get ALL complaints
+@router.get("/my")
+def get_complaints(
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_active_user)
+):
 
     complaints = db.query(Complaint).order_by(Complaint.id.desc()).all()
 

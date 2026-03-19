@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Complaint
+from app.auth import get_current_officer
 
 
 router = APIRouter(
@@ -11,12 +12,14 @@ router = APIRouter(
 )
 
 
-# ✅ Get complaints assigned to a department
-@router.get("/complaints/{department}")
+# ✅ Get complaints for officer's department
+@router.get("/complaints")
 def get_department_complaints(
-    department: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user=Depends(get_current_officer)
 ):
+
+    department = user.get("department")  # 🔥 from JWT
 
     complaints = db.query(Complaint).filter(
         Complaint.predicted_department == department
@@ -36,16 +39,17 @@ def get_department_complaints(
     ]
 
 
-# ✅ Officer updates complaint status
+# ✅ Update complaint (only own dept)
 @router.put("/complaints/{complaint_id}")
 def update_status(
     complaint_id: int,
-    status: str = Query(..., description="New status (Pending/In Progress/Resolved)"),
-    department: str = Query(..., description="Officer's department"),
-    db: Session = Depends(get_db)
+    status: str = Query(...),
+    db: Session = Depends(get_db),
+    user=Depends(get_current_officer)
 ):
 
-    # 🔍 Fetch complaint
+    department = user.get("department")
+
     complaint = db.query(Complaint).filter(
         Complaint.id == complaint_id
     ).first()
@@ -53,17 +57,14 @@ def update_status(
     if not complaint:
         return {"error": "Complaint not found"}
 
-    # 🚫 Check department authorization
     if complaint.predicted_department != department:
-        return {"error": "Unauthorized to update this complaint"}
+        return {"error": "Unauthorized"}
 
-    # ✅ Update status
     complaint.status = status
     db.commit()
-    db.refresh(complaint)
 
     return {
-        "message": "Status updated successfully",
+        "message": "Status updated",
         "complaint_id": complaint_id,
-        "new_status": complaint.status
+        "new_status": status
     }

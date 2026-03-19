@@ -4,6 +4,7 @@ from sqlalchemy import func
 
 from app.database import get_db
 from app.models import Complaint
+from app.auth import get_current_admin
 
 
 router = APIRouter(
@@ -14,7 +15,10 @@ router = APIRouter(
 
 # ✅ Get all complaints
 @router.get("/complaints")
-def get_all_complaints(db: Session = Depends(get_db)):
+def get_all_complaints(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_admin)
+):
 
     complaints = db.query(Complaint).order_by(Complaint.id.desc()).all()
 
@@ -32,18 +36,19 @@ def get_all_complaints(db: Session = Depends(get_db)):
     ]
 
 
-# ✅ Update complaint status (admin override)
+# ✅ Admin update (full control)
 @router.put("/complaints/{complaint_id}")
 def update_status(
     complaint_id: int,
     status: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user=Depends(get_current_admin)
 ):
 
-    ALLOWED_STATUS = ["Pending", "In Progress", "Resolved"]
+    ALLOWED = ["Pending", "In Progress", "Resolved"]
 
-    if status not in ALLOWED_STATUS:
-        return {"error": "Invalid status value"}
+    if status not in ALLOWED:
+        return {"error": "Invalid status"}
 
     complaint = db.query(Complaint).filter(
         Complaint.id == complaint_id
@@ -54,17 +59,20 @@ def update_status(
 
     complaint.status = status
     db.commit()
-    db.refresh(complaint)
 
     return {
-        "message": "Status updated successfully",
+        "message": "Status updated",
         "complaint_id": complaint_id,
-        "new_status": complaint.status
+        "new_status": status
     }
 
 
+# ✅ Stats dashboard
 @router.get("/stats/all")
-def all_stats(db: Session = Depends(get_db)):
+def all_stats(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_admin)
+):
 
     total = db.query(func.count(Complaint.id)).scalar()
 
