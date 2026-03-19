@@ -63,53 +63,29 @@ def update_status(
     }
 
 
-# ✅ Dashboard: Total complaints count
-@router.get("/stats/total")
-def total_complaints(db: Session = Depends(get_db)):
-    count = db.query(func.count(Complaint.id)).scalar()
-    return {"total_complaints": count}
+@router.get("/stats/all")
+def all_stats(db: Session = Depends(get_db)):
 
+    total = db.query(func.count(Complaint.id)).scalar()
 
-# ✅ Dashboard: Department-wise count
-@router.get("/stats/department")
-def complaints_by_department(db: Session = Depends(get_db)):
-
-    result = db.query(
+    dept = db.query(
         Complaint.predicted_department,
         func.count(Complaint.id)
     ).group_by(Complaint.predicted_department).all()
 
-    return [
-        {"department": dept, "count": count}
-        for dept, count in result
-    ]
-
-
-# ✅ Dashboard: Priority-wise count
-@router.get("/stats/priority")
-def complaints_by_priority(db: Session = Depends(get_db)):
-
-    result = db.query(
+    priority = db.query(
         Complaint.priority,
         func.count(Complaint.id)
     ).group_by(Complaint.priority).all()
 
-    return [
-        {"priority": priority, "count": count}
-        for priority, count in result
-    ]
-
-
-# ✅ Dashboard: Status-wise count
-@router.get("/stats/status")
-def complaints_by_status(db: Session = Depends(get_db)):
-
-    result = db.query(
+    status = db.query(
         Complaint.status,
         func.count(Complaint.id)
     ).group_by(Complaint.status).all()
 
-    return [
-        {"status": status, "count": count}
-        for status, count in result
-    ]
+    return {
+        "total": total,
+        "department": [{"name": d, "count": c} for d, c in dept],
+        "priority": [{"name": p, "count": c} for p, c in priority],
+        "status": [{"name": s, "count": c} for s, c in status],
+    }
