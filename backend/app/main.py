@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import complaints, admin, officer, auth
+from app.routes import complaints, admin, officer, auth, chatbot
 from app.database import Base, engine
 from app import models
 
@@ -25,3 +25,4 @@ app.include_router(complaints.router)
 app.include_router(admin.router)
 app.include_router(officer.router)
 app.include_router(auth.router)
+app.include_router(chatbot.router)

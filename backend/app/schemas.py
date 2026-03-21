@@ -2,9 +2,12 @@ from pydantic import BaseModel
 from datetime import datetime
 
 
+# ======================
+# COMPLAINT SCHEMAS
+# ======================
+
 class ComplaintCreate(BaseModel):
     complaint_text: str
-    # user_id: int
 
 
 class ComplaintResponse(BaseModel):
@@ -19,30 +22,32 @@ class ComplaintResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class StatusUpdate(BaseModel):
     complaint_id: int
     status: str
 
+
 # ======================
-# NEW USER SCHEMAS
+# USER SCHEMAS
 # ======================
 
 class UserCreate(BaseModel):
-    name: str
+    username: str   # frontend input
     email: str
     phone: str
     password: str
-    role: str 
+    role: str = "user"   # default safe
 
 
 class UserLogin(BaseModel):
-    email_or_phone: str
+    username: str   # 🔥 supports username/email/phone
     password: str
 
 
 class UserResponse(BaseModel):
     id: int
-    name: str
+    name: str   # DB field
     email: str
     phone: str
     role: str

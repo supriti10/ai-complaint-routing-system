@@ -52,7 +52,7 @@ def submit_complaint(
         predicted_department=department,
         priority=priority,
         status="Pending",
-        user_id=user.get("sub")   # 🔥 IMPORTANT
+        user_id=int(user.get("sub"))   # 🔥 IMPORTANT
     )
 
     db.add(new_complaint)
@@ -97,8 +97,11 @@ def get_complaints(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_active_user)
 ):
+    user_id = int(user.get("sub"))
 
-    complaints = db.query(Complaint).order_by(Complaint.id.desc()).all()
+    complaints = db.query(Complaint).filter(
+        Complaint.user_id == user_id   # ✅ FILTER HERE
+    ).order_by(Complaint.id.desc()).all()
 
     return [
         {
@@ -107,7 +110,6 @@ def get_complaints(
             "predicted_department": c.predicted_department,
             "priority": c.priority,
             "status": c.status,
-            "user_id": c.user_id,
             "created_at": str(c.created_at)
         }
         for c in complaints

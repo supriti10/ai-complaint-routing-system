@@ -1,24 +1,29 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../api";
-import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 
 export default function Login() {
-  const [data, setData] = useState({ email_or_phone: "", password: "" });
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    if (!data.email_or_phone || !data.password) {
-      return toast.error("Fill all fields");
-    }
+  const [data, setData] = useState({
+    username: "",
+    password: ""
+  });
 
+  const login = async () => {
     try {
+      if (!data.username || !data.password) {
+        return toast.error("Enter all fields");
+      }
+
       const res = await API.post("/auth/login", data);
 
       localStorage.setItem("token", res.data.access_token);
       localStorage.setItem("role", res.data.role);
+      localStorage.setItem("user_id", res.data.id);
 
-      toast.success("Welcome back!");
+      toast.success("Welcome back 🚀");
       navigate("/dashboard");
 
     } catch (err) {
@@ -27,47 +32,39 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600">
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-blue-500">
 
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+      <div className="card w-[350px]">
 
-        {/* 🔥 Title */}
-        <h1 className="text-2xl font-bold text-center mb-2">
-          AI Grievance System
-        </h1>
+        <h2 className="text-3xl font-bold text-center mb-6">
+          🚀 Welcome Back
+        </h2>
 
-        <p className="text-center text-gray-500 mb-6">
-          Login to continue
-        </p>
-
-        {/* Inputs */}
         <input
-          className="w-full border p-3 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          placeholder="Email or Phone"
-          onChange={(e)=>setData({...data,email_or_phone:e.target.value})}
+          placeholder="Username / Email / Phone"
+          className="input mb-3"
+          onChange={(e)=>setData({...data, username:e.target.value})}
         />
 
         <input
           type="password"
-          className="w-full border p-3 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
           placeholder="Password"
-          onChange={(e)=>setData({...data,password:e.target.value})}
+          className="input mb-4"
+          onChange={(e)=>setData({...data, password:e.target.value})}
         />
 
-        {/* Button */}
-        <button
-          onClick={handleLogin}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
-        >
+        <button onClick={login} className="btn">
           Login
         </button>
 
-        {/* Link */}
-        <p className="text-center text-sm mt-4">
+        <p className="text-center mt-4 text-sm">
           Don’t have an account?{" "}
-          <Link to="/signup" className="text-blue-600 font-medium">
+          <span
+            onClick={()=>navigate("/signup")}
+            className="text-blue-600 font-semibold cursor-pointer"
+          >
             Signup
-          </Link>
+          </span>
         </p>
 
       </div>

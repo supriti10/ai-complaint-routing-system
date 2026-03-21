@@ -11,15 +11,24 @@ export default function UserDashboard() {
   const [ai, setAi] = useState(null);
 
   const submit = async () => {
-    if (!text) return toast.error("Enter complaint");
-
-    const res = await API.post("/complaints/submit", {
-      complaint_text: text
-    });
-
-    setAi(res.data);
-    setText("");
-    fetchData();
+    try {
+      if (!text) return toast.error("Enter complaint");
+  
+      const res = await API.post("/complaints/submit", {
+        complaint_text: text
+      });
+  
+      setAi(res.data);
+      setText("");
+  
+      await fetchData(); // 🔥 ensure refresh happens
+  
+      toast.success("Complaint submitted!");
+  
+    } catch (err) {
+      console.error("Submit error:", err);
+      toast.error("Submission failed");
+    }
   };
 
   const fetchData = async () => {

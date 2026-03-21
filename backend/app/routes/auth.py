@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
+
 from app.database import get_db
 from app.models import User
 from app.schemas import UserCreate, UserLogin
@@ -13,52 +15,62 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 def signup(user: UserCreate, db: Session = Depends(get_db)):
 
     existing = db.query(User).filter(
-        (User.email == user.email) | (User.phone == user.phone)
+        (User.email == user.email) |
+        (User.phone == user.phone) |
+        (User.name == user.username)
     ).first()
 
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
 
+    # ✅ SAFE ROLE HANDLING
+    role = user.role if user.role in ["user", "admin", "officer"] else "user"
+
     new_user = User(
-        name=user.name,
+        name=user.username,
         email=user.email,
         phone=user.phone,
         password=hash_password(user.password),
-        role=user.role   # default role
+        role=role
     )
 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
-    return {
-        "message": "Signup successful",
-        "user_id": new_user.id
-    }
+    return {"message": "Signup successful"}
 
 
-# ✅ LOGIN (email or phone)
+# ✅ LOGIN (username OR email OR phone)
 @router.post("/login")
-def login(data: UserLogin, db: Session = Depends(get_db)):
+def login(data: dict, db: Session = Depends(get_db)):
+
+    identifier = data.get("username") or data.get("email_or_phone")
+    password = data.get("password")
+
+    if not identifier or not password:
+        raise HTTPException(status_code=400, detail="Missing credentials")
 
     user = db.query(User).filter(
-        (User.email == data.email_or_phone) |
-        (User.phone == data.email_or_phone)
+        or_(
+            User.email == identifier,
+            User.phone == identifier,
+            User.name == identifier   # 🔥 SUPPORT USERNAME
+        )
     ).first()
 
-    if not user or not verify_password(data.password, user.password):
+    if not user or not verify_password(password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # 🔥 TOKEN WITH ALL REQUIRED DATA
+    # 🔥 TOKEN
     token = create_access_token({
-        "sub": str(user.id),   # always string for JWT
-        "role": user.role,
-        "department": getattr(user, "department", None)
+        "sub": str(user.id),
+        "role": user.role
     })
 
     return {
         "message": "Login successful",
         "access_token": token,
         "role": user.role,
-        "user_id": user.id
+        "id": user.id   # 🔥 IMPORTANT (frontend needs this)
     }
