@@ -1,56 +1,35 @@
-from textblob import TextBlob
-
-
 def get_priority(text: str):
+    text = text.lower()
 
-    text_lower = text.lower()
-
-    # HIGH severity keywords
+    # 🔴 HIGH PRIORITY KEYWORDS
     high_keywords = [
-        "fraud",
-        "scam",
-        "hacked",
-        "stolen",
-        "unauthorized",
-        "money deducted",
-        "account blocked"
+        "fraud", "unauthorized", "scam", "hack", "threat",
+        "harassment", "illegal", "blocked", "not received",
+        "money deducted", "account blocked", "charged wrongly",
+        "overcharged", "foreclosure", "urgent", "emergency",
+        "double deduction", "security issue"
     ]
 
-    # MEDIUM severity keywords
+    # 🟠 MEDIUM PRIORITY
     medium_keywords = [
-        "loan",
-        "credit card",
-        "atm",
-        "transaction",
-        "emi",
-        "payment"
+        "delay", "not updated", "incorrect", "issue",
+        "problem", "error", "not working", "pending",
+        "failed", "discrepancy"
     ]
 
-    # Urgency words
-    urgent_words = [
-        "urgent",
-        "immediately",
-        "asap",
-        "critical",
-        "serious"
+    # 🟢 LOW PRIORITY
+    low_keywords = [
+        "information", "clarification", "help",
+        "query", "request", "understand",
+        "details", "how to"
     ]
 
-    # Sentiment analysis
-    sentiment = TextBlob(text).sentiment.polarity
+    # 🔥 PRIORITY CHECK
+    if any(word in text for word in high_keywords):
+        return "High"
 
-    # HIGH priority rules
-    if any(word in text_lower for word in high_keywords):
-        return "HIGH"
+    elif any(word in text for word in medium_keywords):
+        return "Medium"
 
-    if any(word in text_lower for word in urgent_words):
-        return "HIGH"
-
-    # MEDIUM priority rules
-    if any(word in text_lower for word in medium_keywords):
-        return "MEDIUM"
-
-    # Negative sentiment → MEDIUM
-    if sentiment < -0.3:
-        return "MEDIUM"
-
-    return "LOW"
+    else:
+        return "Low"

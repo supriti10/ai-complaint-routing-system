@@ -55,8 +55,8 @@ export default function Layout({ children }) {
         {/* 🔝 Navbar */}
         <div className="bg-white shadow p-4 flex justify-between items-center">
 
-          <h2 className="font-semibold text-lg">
-            Dashboard
+          <h2 className="font-semibold text-lg capitalize">
+            {role} Dashboard
           </h2>
 
           <div className="flex items-center gap-4">

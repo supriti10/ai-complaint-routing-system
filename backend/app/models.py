@@ -14,6 +14,9 @@ class Complaint(Base):
     user_id = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # 🔥 ADD THIS
+    assigned_to = Column(Integer, nullable=True)
+
 
 # ✅ NEW USER MODEL
 class User(Base):

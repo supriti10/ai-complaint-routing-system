@@ -8,74 +8,120 @@ import toast from "react-hot-toast";
 export default function UserDashboard() {
   const [text, setText] = useState("");
   const [complaints, setComplaints] = useState([]);
-  const [ai, setAi] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  // ✅ SUBMIT (CLEAN + RELIABLE)
   const submit = async () => {
     try {
       if (!text) return toast.error("Enter complaint");
+  
+      setLoading(true);
   
       const res = await API.post("/complaints/submit", {
         complaint_text: text
       });
   
-      setAi(res.data);
+      // 🔥 DUPLICATE WARNING (TOAST)
+      if (res.data.duplicate_check) {
+        toast(
+          `⚠️ Similar complaint exists (${(
+            res.data.duplicate_check.similarity_score * 100
+          ).toFixed(0)}%)`
+        );
+      }
+  
       setText("");
   
-      await fetchData(); // 🔥 ensure refresh happens
+      // 🔥 SAFE REFRESH (REAL DATA FROM DB)
+      await fetchData();
   
-      toast.success("Complaint submitted!");
+      toast.success("Complaint submitted 🚀");
   
     } catch (err) {
       console.error("Submit error:", err);
       toast.error("Submission failed");
+    } finally {
+      setLoading(false);
     }
   };
 
+  // ✅ FETCH
   const fetchData = async () => {
-    const res = await API.get("/complaints/my");
-    setComplaints(res.data);
+    try {
+      const res = await API.get("/complaints/my");
+      setComplaints(res.data);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
   };
 
-  useEffect(()=>{fetchData()},[]);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   return (
     <Layout>
 
-      {/* Hero */}
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-2xl mb-6">
-        <h1 className="text-2xl font-bold">Welcome 👋</h1>
-        <p>Submit and track your complaints easily</p>
+      {/* 🔥 HERO */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 text-white p-8 rounded-3xl mb-8 shadow-xl">
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-xl"></div>
+
+        <div className="relative z-10">
+          <h1 className="text-3xl font-bold mb-2">Welcome 👋</h1>
+          <p className="text-white/90 text-lg">
+            Submit and track your complaints easily!
+          </p>
+        </div>
       </div>
 
-      {/* Submit */}
-      <div className="bg-white p-5 rounded-2xl shadow mb-6">
+      {/* 🔥 SUBMIT BOX */}
+      <div className="bg-white/70 backdrop-blur-lg border border-gray-200 p-6 rounded-3xl shadow-lg mb-8">
+
         <textarea
           value={text}
           onChange={(e)=>setText(e.target.value)}
-          className="w-full border p-3 rounded"
-          placeholder="Describe your issue..."
+          className="w-full border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 p-4 rounded-xl outline-none transition"
+          placeholder="Describe your issue in detail..."
         />
 
-        <button onClick={submit}
-          className="bg-blue-600 text-white px-4 py-2 mt-3 rounded">
-          Submit
+        <button 
+          onClick={submit}
+          disabled={loading}
+          className={`mt-4 px-6 py-2 rounded-xl text-white font-medium shadow-md transition ${
+            loading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:scale-105"
+          }`}
+        >
+          {loading ? "Submitting..." : "Submit Complaint 🚀"}
         </button>
 
-        {ai && (
-          <div className="mt-3 text-sm">
-            <p>🏢 {ai.department}</p>
-            <p>⚡ {ai.priority}</p>
-          </div>
-        )}
       </div>
 
-      {/* Complaints */}
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* 🔥 HEADER */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-800">
+          📋 My Complaints
+        </h2>
+        <span className="text-sm text-gray-500">
+          {complaints.length} total
+        </span>
+      </div>
+
+      {/* 🔥 LIST */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {complaints.length === 0 && (
+          <p className="text-gray-500">No complaints yet</p>
+        )}
+
         {complaints.map(c => (
-          <ComplaintCard key={c.id} c={c} />
+          <div key={c.id} className="hover:scale-[1.02] transition">
+            <ComplaintCard c={c} />
+          </div>
         ))}
       </div>
 
+      {/* 🤖 CHATBOT */}
       <Chatbot />
 
     </Layout>

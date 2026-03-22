@@ -1,4 +1,5 @@
 from jose import JWTError, jwt
+from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Header, Depends
 from passlib.context import CryptContext
@@ -10,6 +11,8 @@ from passlib.context import CryptContext
 SECRET_KEY = "supersecretkey"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 # =========================
@@ -75,12 +78,23 @@ def get_current_admin(user: dict = Depends(get_current_user)):
     return user
 
 
-def get_current_officer(user: dict = Depends(get_current_user)):
+def get_current_officer(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
-    if user.get("role") != "officer":
-        raise HTTPException(status_code=403, detail="Officer access required")
+        user_id = payload.get("sub")
+        role = payload.get("role")
 
-    return user
+        if role != "officer":
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+        return {
+            "sub": user_id,
+            "role": role
+        }
+
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 def get_current_active_user(user: dict = Depends(get_current_user)):
