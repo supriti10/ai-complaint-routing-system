@@ -6,27 +6,12 @@ export default function Layout({ children }) {
   const role = localStorage.getItem("role");
 
   const [open, setOpen] = useState(true);
-  const [dark, setDark] = useState(false);
 
-  // 🌗 Load theme
+  // 🔥 FORCE DARK MODE ALWAYS
   useEffect(() => {
-    const saved = localStorage.getItem("theme");
-    if (saved === "dark") {
-      setDark(true);
-      document.documentElement.classList.add("dark");
-    }
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("theme", "dark");
   }, []);
-
-  // 🌗 Apply theme
-  useEffect(() => {
-    if (dark) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [dark]);
 
   const logout = () => {
     localStorage.clear();
@@ -34,70 +19,55 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div className="relative flex h-screen overflow-hidden transition-colors duration-500">
+    <div className="relative flex h-screen overflow-hidden text-white">
 
-      {/* 🌈 BACKGROUND */}
-      <div className={`absolute inset-0 -z-10 transition-colors duration-500 ${
-        dark
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-black"
-          : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
-      }`} />
+      {/* 🌌 INSANE BACKGROUND */}
+      <div className="absolute inset-0 -z-10 
+        bg-gradient-to-br from-black via-gray-900 to-black" />
 
-      {/* 🔥 Glow Effects */}
-      <div className="absolute -z-10 top-[-120px] left-[-120px] w-[300px] h-[300px] bg-purple-400 rounded-full blur-3xl opacity-20"></div>
-      <div className="absolute -z-10 bottom-[-120px] right-[-120px] w-[300px] h-[300px] bg-blue-400 rounded-full blur-3xl opacity-20"></div>
+      {/* 🔥 Glow Layers */}
+      <div className="absolute top-[-150px] left-[-150px] w-[400px] h-[400px] bg-purple-600 rounded-full blur-3xl opacity-20"></div>
+      <div className="absolute bottom-[-150px] right-[-150px] w-[400px] h-[400px] bg-blue-600 rounded-full blur-3xl opacity-20"></div>
+      <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] bg-pink-500 rounded-full blur-3xl opacity-10"></div>
 
-      {/* 🧠 Grid Pattern */}
-      <div className="absolute inset-0 -z-10 opacity-10 bg-[linear-gradient(#00000010_1px,transparent_1px),linear-gradient(90deg,#00000010_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+      {/* 🧠 GRID */}
+      <div className="absolute inset-0 opacity-10 bg-[linear-gradient(#ffffff10_1px,transparent_1px),linear-gradient(90deg,#ffffff10_1px,transparent_1px)] bg-[size:40px_40px]"></div>
 
-      {/* 🔥 SIDEBAR */}
-      <div className={`transition-all duration-300 ${open ? "w-64" : "w-16"} flex flex-col z-10 ${
-        dark
-          ? "bg-gray-900 text-white"
-          : "bg-white shadow-xl"
-      }`}>
+      {/* SIDEBAR */}
+      <div className={`transition-all duration-300 ${open ? "w-64" : "w-16"} flex flex-col z-10 bg-gray-900`}>
 
-        {/* Toggle */}
-        <button
-          onClick={() => setOpen(!open)}
-          className="p-3 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-        >
+        <button onClick={() => setOpen(!open)} className="p-3 hover:bg-gray-700">
           ☰
         </button>
 
-        {/* Logo */}
-        <h1 className={`font-bold text-xl p-4 transition ${!open && "hidden"}`}>
+        <h1 className={`font-bold text-xl p-4 ${!open && "hidden"}`}>
           Grievance AI
         </h1>
 
-        {/* Menu */}
         <div className="flex flex-col gap-2 p-3">
 
           <button
             onClick={() => navigate("/dashboard")}
-            className="hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded flex items-center gap-2 transition"
+            className="hover:bg-gray-700 p-2 rounded flex items-center gap-2"
           >
             🏠 {open && "Dashboard"}
           </button>
 
           <button
             onClick={logout}
-            className="text-red-500 hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded flex items-center gap-2 transition"
+            className="text-red-400 hover:bg-gray-700 p-2 rounded flex items-center gap-2"
           >
             🚪 {open && "Logout"}
           </button>
+
         </div>
       </div>
 
-      {/* 🔥 MAIN */}
+      {/* MAIN */}
       <div className="flex-1 flex flex-col relative z-10">
 
-        {/* 🔝 NAVBAR */}
-        <div className={`shadow p-4 flex justify-between items-center rounded-xl mx-4 mt-4 transition ${
-          dark
-            ? "bg-gray-800 text-white"
-            : "bg-white/70 backdrop-blur-lg"
-        }`}>
+        {/* NAVBAR */}
+        <div className="bg-gray-800 shadow p-4 flex justify-between items-center rounded-xl mx-4 mt-4">
 
           <h2 className="font-semibold text-lg capitalize">
             {role} Dashboard
@@ -105,31 +75,19 @@ export default function Layout({ children }) {
 
           <div className="flex items-center gap-4">
 
-            {/* 🌗 TOGGLE BUTTON */}
-            <button
-              onClick={() => setDark(!dark)}
-              className="px-3 py-1 rounded-lg text-sm font-medium transition
-                         bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:scale-105"
-            >
-              {dark ? "☀ Light" : "🌙 Dark"}
-            </button>
-
-            {/* 👤 Role Badge */}
-            <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+            <div className="bg-blue-500/20 px-3 py-1 rounded-full text-sm">
               {role}
             </div>
 
-            {/* 👤 Avatar */}
-            <div className="w-8 h-8 bg-blue-500 text-white flex items-center justify-center rounded-full">
+            <div className="w-8 h-8 bg-blue-500 flex items-center justify-center rounded-full">
               {role?.[0]?.toUpperCase()}
             </div>
+
           </div>
         </div>
 
-        {/* 📦 CONTENT */}
-        <div className={`p-6 overflow-y-auto transition ${
-          dark ? "text-gray-100" : "text-gray-900"
-        }`}>
+        {/* CONTENT */}
+        <div className="p-6 overflow-y-auto">
           {children}
         </div>
 

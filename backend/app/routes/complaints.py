@@ -7,13 +7,13 @@ from app.utils.priority import get_priority
 from app.utils.similarity import find_similar_complaint
 
 from app.schemas import ComplaintCreate, StatusUpdate
-from app.models import Complaint, User
+from app.models import Complaint
 from app.auth import get_current_active_user
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
 
-# ✅ Submit complaint (AUTO ASSIGN INCLUDED)
+# ✅ Submit complaint (AI DUPLICATE DETECTION)
 @router.post("/submit")
 def submit_complaint(
     complaint: ComplaintCreate,
@@ -21,32 +21,23 @@ def submit_complaint(
     user=Depends(get_current_active_user)
 ):
 
-    # 🔮 Predict department & priority
     department = predict_department(complaint.complaint_text)
     priority = get_priority(complaint.complaint_text)
 
-    # 📥 Existing complaints
-    existing = db.query(Complaint.complaint_text).all()
-    old_texts = [c[0] for c in existing]
-
     # 🔍 Similarity check
-    _, score = find_similar_complaint(
+    existing = db.query(Complaint).all()
+    old_texts = [c.complaint_text for c in existing]
+
+    similar_text, score = find_similar_complaint(
         complaint.complaint_text,
         old_texts
     )
 
-    duplicate_warning = None
-    if score > 0.85:
-        duplicate_warning = {
-            "message": "Similar complaint exists",
-            "similarity_score": float(score)
-        }
+    existing_match = db.query(Complaint).filter(
+        Complaint.complaint_text == similar_text
+    ).first() if similar_text else None
 
-    # 🔥 AUTO ASSIGN LOGIC
-    officer = db.query(User).filter(User.role == "officer").first()
-    # assigned_id = officer.id if officer else None
-
-    # 💾 Save complaint
+    # 🔥 ALWAYS SAVE (IMPORTANT FIX)
     new_complaint = Complaint(
         complaint_text=complaint.complaint_text,
         predicted_department=department,
@@ -60,14 +51,37 @@ def submit_complaint(
     db.commit()
     db.refresh(new_complaint)
 
-    return {
-        "message": "Complaint submitted successfully",
-        "department": department,
-        "priority": priority,
-        "duplicate_check": duplicate_warning,
-        "assigned_to": None
-    }
+    # 🔥 RESPONSE LOGIC
+    if score >= 0.85:
+        return {
+            "message": "Complaint submitted (duplicate detected)",
+            "department": department,
+            "priority": priority,
+            "duplicate": True,
+            "existing_id": existing_match.id if existing_match else None,
+            "similarity_score": float(score)
+        }
 
+    elif score >= 0.6:
+        return {
+            "message": "Complaint submitted (similar found)",
+            "department": department,
+            "priority": priority,
+            "duplicate": False,
+            "warning": True,
+            "similarity_score": float(score),
+            "existing_id": existing_match.id if existing_match else None
+        }
+
+    else:
+        return {
+            "message": "Complaint submitted successfully",
+            "department": department,
+            "priority": priority,
+            "duplicate": False,
+            "similarity_score": float(score),
+            "assigned_to": None
+        }
 
 # ✅ Update complaint status
 @router.put("/update-status")

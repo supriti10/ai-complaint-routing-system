@@ -9,11 +9,12 @@ export default function Chatbot() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+
   const [pendingComplaint, setPendingComplaint] = useState(null);
+  const [duplicateInfo, setDuplicateInfo] = useState(null);
 
   const chatRef = useRef(null);
 
-  // 🔥 Auto scroll
   useEffect(() => {
     chatRef.current?.scrollTo({
       top: chatRef.current.scrollHeight,
@@ -21,7 +22,6 @@ export default function Chatbot() {
     });
   }, [messages, loading]);
 
-  // 🔥 Typing animation
   const typeMessage = async (text) => {
     let current = "";
 
@@ -34,7 +34,7 @@ export default function Chatbot() {
         return updated;
       });
 
-      await new Promise(r => setTimeout(r, 10));
+      await new Promise(r => setTimeout(r, 8));
     }
   };
 
@@ -52,15 +52,11 @@ export default function Chatbot() {
         message: userMsg
       });
 
-      if (!res || !res.data) throw new Error("No response");
-
       const { reply, final, complaint } = res.data;
 
-      // Add empty bot msg
       setMessages(prev => [...prev, { from: "bot", text: "" }]);
       await typeMessage(reply || "Processing...");
 
-      // ✅ Instead of alert → store pending complaint
       if (final && complaint) {
         setPendingComplaint(complaint);
 
@@ -68,42 +64,39 @@ export default function Chatbot() {
           ...prev,
           {
             from: "bot",
-            text: `📋 Ready to submit:\n${complaint}`
+            text: `📋 Here's a refined complaint:\n${complaint}`
           }
         ]);
       }
 
-    } catch (err) {
-      console.error(err);
-
-      setMessages(prev => [
-        ...prev,
-        {
-          from: "bot",
-          text: "⚠️ Server issue. Submitting directly..."
-        }
-      ]);
-
-      try {
-        await API.post("/complaints/submit", {
-          complaint_text: userMsg
-        });
-
-        toast.success("Complaint submitted!");
-      } catch {
-        toast.error("Failed to submit");
-      }
+    } catch {
+      toast.error("Chatbot failed");
     }
 
     setLoading(false);
   };
 
-  // ✅ Submit handler (NO ALERT)
+  // 🔥 FINAL SUBMIT (WITH DUPLICATE CHECK)
   const handleSubmitComplaint = async () => {
     try {
-      await API.post("/complaints/submit", {
+      const res = await API.post("/complaints/submit", {
         complaint_text: pendingComplaint
       });
+
+      // 🔥 DUPLICATE HANDLING
+      if (res.data?.duplicate) {
+        setDuplicateInfo(res.data);
+
+        setMessages(prev => [
+          ...prev,
+          {
+            from: "bot",
+            text: `⚠️ Similar complaint already exists (ID: ${res.data.existing_id}).`
+          }
+        ]);
+
+        return;
+      }
 
       toast.success("Complaint submitted!");
       setPendingComplaint(null);
@@ -120,36 +113,35 @@ export default function Chatbot() {
 
   return (
     <>
-      {/* 💬 Floating Button */}
+      {/* FLOAT BUTTON */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-5 right-5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 rounded-full shadow-xl hover:scale-110 transition"
+        className="fixed bottom-5 right-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 rounded-full shadow-xl hover:scale-110 transition"
       >
-        💬
+        🤖
       </button>
 
-      {/* 💬 Chat Window */}
+      {/* CHAT WINDOW */}
       {open && (
-        <div className="fixed bottom-20 right-5 w-80 bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed bottom-20 right-5 w-80 
+                        bg-gray-900 text-white 
+                        rounded-xl shadow-2xl flex flex-col overflow-hidden">
 
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-3 flex justify-between">
+          {/* HEADER */}
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-3 flex justify-between">
             AI Assistant 🤖
             <button onClick={() => setOpen(false)}>✖</button>
           </div>
 
-          {/* Messages */}
-          <div
-            ref={chatRef}
-            className="h-64 overflow-y-auto p-3 space-y-2"
-          >
+          {/* MESSAGES */}
+          <div ref={chatRef} className="h-64 overflow-y-auto p-3 space-y-2">
             {messages.map((m, i) => (
               <div
                 key={i}
                 className={`p-2 rounded-lg max-w-[75%] whitespace-pre-line ${
                   m.from === "bot"
-                    ? "bg-gray-200"
-                    : "bg-blue-500 text-white ml-auto"
+                    ? "bg-gray-700"
+                    : "bg-indigo-500 ml-auto"
                 }`}
               >
                 {m.text}
@@ -157,26 +149,64 @@ export default function Chatbot() {
             ))}
 
             {loading && (
-              <div className="text-sm text-gray-400">🤖 Typing...</div>
+              <div className="text-sm text-gray-400">🤖 Thinking...</div>
             )}
           </div>
 
-          {/* ✅ Inline submit UI */}
-          {pendingComplaint && (
-            <div className="p-3 border-t bg-gray-50">
+          {/* CONFIRM SUBMIT */}
+          {pendingComplaint && !duplicateInfo && (
+            <div className="p-3 border-t border-gray-700">
               <button
                 onClick={handleSubmitComplaint}
-                className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
+                className="w-full bg-green-600 py-2 rounded-lg hover:bg-green-700"
               >
                 ✅ Confirm & Submit
               </button>
             </div>
           )}
 
-          {/* Input */}
-          <div className="flex border-t">
+          {/* 🔥 DUPLICATE INFO (UPGRADED WITH ACTION) */}
+          {duplicateInfo && (
+            <div className="p-3 border-t border-gray-700 bg-yellow-500/10 text-yellow-300 text-sm rounded-b-xl">
+
+              <p className="font-semibold mb-1">
+                ⚠️ Similar complaint detected
+              </p>
+
+              <p>
+                Similarity: {(duplicateInfo.similarity_score * 100).toFixed(1)}%
+              </p>
+
+              {duplicateInfo.existing_id && (
+                <>
+                  <p>
+                    Existing Complaint ID: #{duplicateInfo.existing_id}
+                  </p>
+
+                  {/* 🔥 ACTION BUTTON */}
+                  <button
+                    onClick={() => {
+                      alert(`Redirect to complaint ${duplicateInfo.existing_id}`);
+                    }}
+                    className="mt-2 text-blue-400 underline"
+                  >
+                    View Similar Complaint
+                  </button>
+                </>
+              )}
+
+              <p className="text-xs mt-1 text-gray-400">
+                Your complaint has still been submitted successfully.
+              </p>
+
+            </div>
+          )}
+                
+
+          {/* INPUT */}
+          <div className="flex border-t border-gray-700">
             <input
-              className="flex-1 p-2 outline-none"
+              className="flex-1 p-2 bg-gray-800 outline-none"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Describe your issue..."
@@ -185,11 +215,12 @@ export default function Chatbot() {
 
             <button
               onClick={send}
-              className="bg-blue-600 text-white px-4 hover:bg-blue-700"
+              className="bg-indigo-600 px-4 hover:bg-indigo-700"
             >
               Send
             </button>
           </div>
+
         </div>
       )}
     </>

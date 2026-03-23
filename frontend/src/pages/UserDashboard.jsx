@@ -22,12 +22,20 @@ export default function UserDashboard() {
       });
   
       // 🔥 DUPLICATE WARNING (TOAST)
-      if (res.data.duplicate_check) {
-        toast(
-          `⚠️ Similar complaint exists (${(
-            res.data.duplicate_check.similarity_score * 100
-          ).toFixed(0)}%)`
-        );
+      if (res.data.duplicate) {
+        setMessages(prev => [
+          ...prev,
+          {
+            from: "bot",
+            text: `⚠️ Similar complaint detected!
+      Similarity: ${(res.data.similarity_score * 100).toFixed(1)}%
+      Existing ID: ${res.data.existing_id}`
+          }
+        ]);
+      }
+
+      if (res.data.warning) {
+        toast(`⚠️ Similar complaint exists (${(res.data.similarity_score * 100).toFixed(1)}%)`);
       }
   
       setText("");
@@ -80,7 +88,10 @@ export default function UserDashboard() {
         <textarea
           value={text}
           onChange={(e)=>setText(e.target.value)}
-          className="w-full border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 p-4 rounded-xl outline-none transition"
+          className="w-full p-4 rounded-xl outline-none
+          bg-white text-black
+          border border-gray-300
+          placeholder-gray-500"
           placeholder="Describe your issue in detail..."
         />
 

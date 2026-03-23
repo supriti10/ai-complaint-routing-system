@@ -2,79 +2,43 @@ import React, { useEffect, useState } from "react";
 import API from "../api";
 import Layout from "../components/Layout";
 import toast from "react-hot-toast";
-import {
-  PieChart, Pie, Cell,
-  BarChart, Bar, XAxis, YAxis, Tooltip
-} from "recharts";
 
 export default function AdminDashboard() {
 
   const [complaints, setComplaints] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [officers, setOfficers] = useState([]);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-
-  // 🔥 FETCH DATA
-  const fetchData = async () => {
-    try {
-      const res = await API.get("/admin/complaints");
-      setComplaints(res.data);
-      setFiltered(res.data);
-    } catch {
-      toast.error("Failed to load complaints");
-    }
-  };
-
-  const fetchOfficers = async () => {
-    try {
-      const res = await API.get("/admin/officers");
-      setOfficers(res.data);
-    } catch {
-      console.error("Failed to load officers");
-      setOfficers([]);
-    }
-  };
 
   useEffect(() => {
     fetchData();
     fetchOfficers();
   }, []);
 
-  // 🔍 FILTER
-  useEffect(() => {
-    let data = complaints;
+  const fetchData = async () => {
+    const res = await API.get("/admin/complaints");
+    setComplaints(res.data);
+  };
 
-    if (search) {
-      data = data.filter(c =>
-        c.complaint_text.toLowerCase().includes(search.toLowerCase())
-      );
-    }
+  const fetchOfficers = async () => {
+    const res = await API.get("/admin/officers");
+    setOfficers(res.data);
+  };
 
-    if (status === "Unassigned") {
-      data = data.filter(c => !c.assigned_to);
-    } else if (status) {
-      data = data.filter(c => c.status === status);
-    }
+  // 🔥 SAFE STATUS NORMALIZATION
+  const normalize = (status) => status?.toLowerCase().trim();
 
-    setFiltered(data);
-  }, [search, status, complaints]);
+  const assigned = complaints.filter(c => c.assigned_to);
+  const unassigned = complaints.filter(c => !c.assigned_to);
 
-  // 📊 STATS
-  const stats = [
-    { name: "Pending", value: complaints.filter(c => c.status === "Pending").length },
-    { name: "In Progress", value: complaints.filter(c => c.status === "In Progress").length },
-    { name: "Resolved", value: complaints.filter(c => c.status === "Resolved").length },
-  ];
+  // 🔥 FIXED RESOLVED COUNT
+  const resolved = complaints.filter(
+    c => normalize(c.status) === "resolved"
+  );
 
-  const COLORS = ["#facc15", "#3b82f6", "#22c55e"];
-
-  // 🔥 ASSIGN
-  const assign = async (complaintId, officerId) => {
+  const assign = async (id, officerId) => {
     if (!officerId) return;
 
     try {
-      await API.put(`/admin/assign?complaint_id=${complaintId}&officer_id=${officerId}`);
+      await API.put(`/admin/assign?complaint_id=${id}&officer_id=${officerId}`);
       toast.success("Assigned 🚀");
       fetchData();
     } catch {
@@ -82,129 +46,152 @@ export default function AdminDashboard() {
     }
   };
 
+  const updateStatus = async (id, status) => {
+    try {
+      await API.put(`/admin/complaints/${id}?status=${status}`);
+      toast.success("Updated");
+      fetchData();
+    } catch {
+      toast.error("Update failed");
+    }
+  };
+
+  const getOfficerName = (id) => {
+    const officer = officers.find(o => o.id === id);
+    return officer ? officer.username : "Unknown";
+  };
+
+  const priorityStyle = (p) => {
+    p = p?.toLowerCase();
+
+    if (p === "high")
+      return "bg-gradient-to-r from-red-500 via-pink-500 to-rose-500";
+
+    if (p === "medium")
+      return "bg-gradient-to-r from-yellow-400 via-orange-400 to-amber-500 text-black";
+
+    return "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500";
+  };
+
   return (
     <Layout>
 
-      {/* 🔥 HEADER */}
+      {/* HEADER */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">👑 Admin Control Center</h1>
-        <p className="text-gray-500">Manage complaints smartly</p>
+        <h1 className="text-3xl font-bold text-white">
+          👑 Admin Control Center
+        </h1>
+        <p className="text-gray-400">
+          Manage, assign, and monitor complaints 🚀
+        </p>
       </div>
 
-      {/* 🔍 FILTERS */}
-      <div className="flex gap-3 mb-6">
-        <input
-          placeholder="Search complaints..."
-          className="border p-2 rounded-lg shadow w-64"
-          onChange={(e)=>setSearch(e.target.value)}
-        />
+      {/* 🔥 STATS (FIXED + RESOLVED ADDED) */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
 
-        <select
-          onChange={(e)=>setStatus(e.target.value)}
-          className="border p-2 rounded-lg shadow"
-        >
-          <option value="">All</option>
-          <option>Pending</option>
-          <option>In Progress</option>
-          <option>Resolved</option>
-          <option>Unassigned</option> {/* 🔥 NEW */}
-        </select>
+        <div className="bg-gray-800 p-4 rounded-xl text-center">
+          <p>Total</p>
+          <h2 className="text-2xl font-bold">{complaints.length}</h2>
+        </div>
+
+        <div className="bg-gray-800 p-4 rounded-xl text-center">
+          <p>Assigned</p>
+          <h2 className="text-2xl font-bold">{assigned.length}</h2>
+        </div>
+
+        <div className="bg-gray-800 p-4 rounded-xl text-center">
+          <p>Unassigned</p>
+          <h2 className="text-2xl font-bold">{unassigned.length}</h2>
+        </div>
+
+        <div className="bg-green-600 p-4 rounded-xl text-center">
+          <p>Resolved</p>
+          <h2 className="text-2xl font-bold">{resolved.length}</h2>
+        </div>
+
       </div>
 
-      {/* 📊 CHARTS */}
+      {/* UNASSIGNED */}
+      <h2 className="text-xl font-bold mb-3 text-white">
+        📥 Unassigned Complaints
+      </h2>
+
       <div className="grid md:grid-cols-2 gap-6 mb-8">
-
-        <div className="bg-white p-5 rounded-2xl shadow">
-          <PieChart width={350} height={300}>
-            <Pie data={stats} dataKey="value" nameKey="name" outerRadius={100} label>
-              {stats.map((entry, index) => (
-                <Cell key={index} fill={COLORS[index]} />
-              ))}
-            </Pie>
-          </PieChart>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl shadow">
-          <BarChart width={350} height={300} data={stats}>
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="value" />
-          </BarChart>
-        </div>
-
-      </div>
-
-      {/* 🧾 CARDS */}
-      <div className="grid md:grid-cols-2 gap-6">
-
-        {filtered.length === 0 && (
-          <p className="text-gray-500">No complaints found</p>
-        )}
-
-        {filtered.map(c => (
+        {unassigned.map(c => (
           <div key={c.id}
-            className="bg-white p-5 rounded-2xl shadow hover:shadow-xl transition border-l-4 border-indigo-500">
+            className="bg-gray-800/60 backdrop-blur-xl border border-white/10 
+                       p-5 rounded-2xl shadow-lg hover:scale-[1.02] transition">
 
-            <h3 className="font-semibold text-lg mb-2">{c.complaint_text}</h3>
+            <p className="font-semibold text-lg mb-2">{c.complaint_text}</p>
 
-            <p className="text-sm text-gray-500 mb-2">
+            <p className="text-gray-400 mb-3">
               🏢 {c.predicted_department}
             </p>
 
-            {/* PRIORITY */}
-            <span className={`px-3 py-1 rounded-full text-white text-xs font-semibold ${
-              c.priority?.toLowerCase() === "high"
-              ? "bg-gradient-to-r from-red-500 via-pink-500 to-rose-500 text-white"
-              : c.priority?.toLowerCase() === "medium"
-              ? "bg-gradient-to-r from-yellow-400 via-orange-400 to-amber-500 text-black"
-              : "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 text-white"
-            }`}>
+            <span className={`px-4 py-1 rounded-full text-xs font-bold uppercase ${priorityStyle(c.priority)}`}>
               {c.priority}
             </span>
 
-            {/* STATUS */}
-            <div className="mt-2 text-sm">
-              Status:
-              <span className={`ml-2 font-semibold ${
-                c.status === "Pending"
-                  ? "text-yellow-500"
-                  : c.status === "In Progress"
-                  ? "text-blue-500"
-                  : "text-green-600"
-              }`}>
-                {c.status}
-              </span>
-            </div>
+            <select
+              onChange={(e)=>assign(c.id, e.target.value)}
+              className="mt-4 w-full p-2 rounded-lg bg-gray-900 border border-gray-700 text-white"
+            >
+              <option value="">Assign officer</option>
+              {officers.map(o => (
+                <option key={o.id} value={o.id}>
+                  {o.username}
+                </option>
+              ))}
+            </select>
 
-            {/* 👮 ASSIGNED */}
-            <div className="mt-2 text-sm text-gray-600">
-              Assigned:
-              <span className="ml-2 font-semibold">
-                {c.assigned_officer || "Not Assigned"}
-              </span>
-            </div>
+          </div>
+        ))}
+      </div>
 
-            {/* DROPDOWN */}
-            <div className="mt-3">
-              <select
-                onChange={(e)=>assign(c.id, e.target.value)}
-                className="border p-2 rounded-lg w-full"
-                defaultValue=""
+      {/* ASSIGNED */}
+      <h2 className="text-xl font-bold mb-3 text-white">
+        📌 Assigned Complaints
+      </h2>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {assigned.map(c => (
+          <div key={c.id}
+            className="bg-gray-800/60 backdrop-blur-xl border border-white/10 
+                       p-5 rounded-2xl shadow-lg hover:scale-[1.02] transition">
+
+            <p className="font-semibold text-lg mb-2">{c.complaint_text}</p>
+
+            <p className="text-gray-400 mb-2">
+              🏢 {c.predicted_department}
+            </p>
+
+            <span className={`px-4 py-1 rounded-full text-xs font-bold uppercase ${priorityStyle(c.priority)}`}>
+              {c.priority}
+            </span>
+
+            <p className="mt-2 text-sm text-indigo-400">
+              👤 {getOfficerName(c.assigned_to)}
+            </p>
+
+            {/* STATUS CONTROL */}
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={()=>updateStatus(c.id,"In Progress")}
+                className="px-3 py-1 bg-blue-600 rounded"
               >
-                <option value="">Assign to officer</option>
+                Start
+              </button>
 
-                {(officers || []).map(o => (
-                  <option key={o.id} value={o.id}>
-                    {o.username}
-                  </option>
-                ))}
-              </select>
+              <button
+                onClick={()=>updateStatus(c.id,"Resolved")}
+                className="px-3 py-1 bg-green-600 rounded"
+              >
+                Resolve
+              </button>
             </div>
 
           </div>
         ))}
-
       </div>
 
     </Layout>
