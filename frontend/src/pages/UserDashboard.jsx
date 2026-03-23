@@ -21,26 +21,21 @@ export default function UserDashboard() {
         complaint_text: text
       });
   
-      // 🔥 DUPLICATE WARNING (TOAST)
+      // 🔥 HANDLE DUPLICATE / WARNING (NO setMessages here)
       if (res.data.duplicate) {
-        setMessages(prev => [
-          ...prev,
-          {
-            from: "bot",
-            text: `⚠️ Similar complaint detected!
-      Similarity: ${(res.data.similarity_score * 100).toFixed(1)}%
-      Existing ID: ${res.data.existing_id}`
-          }
-        ]);
+        toast.error(
+          `⚠️ Similar complaint (${(res.data.similarity_score * 100).toFixed(1)}%)`
+        );
       }
-
+  
       if (res.data.warning) {
-        toast(`⚠️ Similar complaint exists (${(res.data.similarity_score * 100).toFixed(1)}%)`);
+        toast(
+          `⚠️ Similar complaint exists (${(res.data.similarity_score * 100).toFixed(1)}%)`
+        );
       }
   
       setText("");
   
-      // 🔥 SAFE REFRESH (REAL DATA FROM DB)
       await fetchData();
   
       toast.success("Complaint submitted 🚀");
