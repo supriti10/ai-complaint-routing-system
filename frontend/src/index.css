@@ -20,3 +20,17 @@
 .card {
   @apply backdrop-blur-lg bg-white/80 shadow-2xl rounded-2xl p-8;
 }
+
+.input-glass {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  outline: none;
+}
+
+.input-glass::placeholder {
+  color: rgba(255,255,255,0.7);
+}

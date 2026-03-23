@@ -100,7 +100,7 @@ export default function UserDashboard() {
 
       {/* 🔥 HEADER */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-800">
+        <h2 className="text-xl font-bold text-purple/50">
           📋 My Complaints
         </h2>
         <span className="text-sm text-gray-500">
