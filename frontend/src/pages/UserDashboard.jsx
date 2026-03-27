@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import API from "../api";
 import Layout from "../components/Layout";
 import ComplaintCard from "../components/ComplaintCard";
-import Chatbot from "../components/Chatbot";
 import toast from "react-hot-toast";
 
 export default function UserDashboard() {
@@ -126,9 +125,6 @@ export default function UserDashboard() {
           </div>
         ))}
       </div>
-
-      {/* 🤖 CHATBOT */}
-      <Chatbot />
 
     </Layout>
   );

@@ -1,3 +1,5 @@
+import ComplaintTimeline from "./ComplaintTimeline";
+
 export default function ComplaintCard({ c, onUpdate }) {
   return (
     <div className="relative bg-white/80 backdrop-blur-lg p-5 rounded-3xl shadow-lg hover:shadow-2xl hover:scale-[1.02] transition border border-gray-200">
@@ -27,7 +29,7 @@ export default function ComplaintCard({ c, onUpdate }) {
           {c.priority?.toLowerCase() === "low" && "✅ LOW"}
         </span>
 
-        {/* 🔄 STATUS */}
+        {/* 🔄 STATUS
         <span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
           c.status?.toLowerCase() === "pending"
             ? "bg-gray-200/70 backdrop-blur-md text-black"
@@ -38,9 +40,11 @@ export default function ComplaintCard({ c, onUpdate }) {
           {c.status === "Pending" && "⏳ Pending"}
           {c.status === "In Progress" && "🚀 In Progress"}
           {c.status === "Resolved" && "✅ Resolved"}
-        </span>
+        </span> */}
 
       </div>
+
+      <ComplaintTimeline status={c.status} />
 
       {/* ⚙ ACTION BUTTONS */}
       {onUpdate && (

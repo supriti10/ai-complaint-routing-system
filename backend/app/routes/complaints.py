@@ -38,9 +38,15 @@ def submit_complaint(
 
     # 🔥 FIXED MATCH (NO NULL ID BUG)
     existing_match = next(
-        (c for c in existing if c.complaint_text == similar_text),
-        None
-    ) if similar_text else None
+    (
+        c for c in existing
+        if similar_text and (
+            similar_text.lower() in c.complaint_text.lower()
+            or c.complaint_text.lower() in similar_text.lower()
+        )
+    ),
+    None
+)
 
     # 💾 ALWAYS SAVE (IMPORTANT)
     new_complaint = Complaint(
