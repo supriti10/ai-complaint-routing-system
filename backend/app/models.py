@@ -17,6 +17,9 @@ class Complaint(Base):
     # 🔥 ADD THIS
     assigned_to = Column(Integer, nullable=True)
 
+    rating = Column(Integer, nullable=True) 
+    feedback = Column(String, nullable=True)
+
 
 # ✅ NEW USER MODEL
 class User(Base):

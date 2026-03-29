@@ -1,7 +1,7 @@
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
-from fastapi import HTTPException, Header, Depends
+from fastapi import HTTPException, Depends
 from passlib.context import CryptContext
 
 # =========================
@@ -38,28 +38,19 @@ def verify_password(plain_password: str, hashed_password: str):
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-
     to_encode.update({"exp": expire})
-
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 # =========================
-# 🔍 GET CURRENT USER
+# 🔍 GET CURRENT USER (FIXED)
 # =========================
 
-def get_current_user(authorization: str = Header(None)):
-
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header missing")
+def get_current_user(token: str = Depends(oauth2_scheme)):
 
     try:
-        token = authorization.split(" ")[1]
-
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-
         return payload
 
     except JWTError:
@@ -78,23 +69,12 @@ def get_current_admin(user: dict = Depends(get_current_user)):
     return user
 
 
-def get_current_officer(token: str = Depends(oauth2_scheme)):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+def get_current_officer(user: dict = Depends(get_current_user)):
 
-        user_id = payload.get("sub")
-        role = payload.get("role")
+    if user.get("role") != "officer":
+        raise HTTPException(status_code=403, detail="Not authorized")
 
-        if role != "officer":
-            raise HTTPException(status_code=403, detail="Not authorized")
-
-        return {
-            "sub": user_id,
-            "role": role
-        }
-
-    except:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    return user
 
 
 def get_current_active_user(user: dict = Depends(get_current_user)):

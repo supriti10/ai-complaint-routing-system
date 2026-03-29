@@ -1,6 +1,45 @@
 import ComplaintTimeline from "./ComplaintTimeline";
+import API from "../api";
+import toast from "react-hot-toast";
+import { useState } from "react";
 
 export default function ComplaintCard({ c, onUpdate }) {
+  const [hover, setHover] = useState(0);
+  const [ratingLoading, setRatingLoading] = useState(false);
+
+  const submitFeedback = async (id, rating) => {
+    if (ratingLoading) return;
+  
+    setRatingLoading(true);
+  
+    try {
+      const res = await API.post("/complaints/feedback", {
+        complaint_id: id,
+        rating,
+        feedback: "User feedback"
+      });
+  
+      console.log("FEEDBACK RESPONSE:", res.data); // 🔍 DEBUG
+  
+      // ✅ SUCCESS if request didn't throw
+      toast.success("Feedback submitted");
+  
+      await fetchData(); // 🔥 refresh UI
+  
+    } catch (err) {
+      console.error("FEEDBACK ERROR:", err);
+  
+      // ❌ Only show error if real failure
+      if (err.response) {
+        toast.error(err.response.data?.message || "Failed to submit");
+      } else {
+        toast.error("Network error");
+      }
+    } finally {
+      setRatingLoading(false);
+    }
+  };
+  
   return (
     <div className="relative bg-white/80 backdrop-blur-lg p-5 rounded-3xl shadow-lg hover:shadow-2xl hover:scale-[1.02] transition border border-gray-200">
 
@@ -45,6 +84,45 @@ export default function ComplaintCard({ c, onUpdate }) {
       </div>
 
       <ComplaintTimeline status={c.status} />
+
+      {/* FEEDBACK SYSTEM */}
+
+      {c.status === "Resolved" && (
+        <div className="mt-3">
+
+          {/* ⭐ SHOW RATING IF EXISTS */}
+          {c.rating ? (
+            <p className="text-teal-900 font-semibold text-sm">
+              ⭐ Rated: {c.rating}/5
+            </p>
+          ) : (
+            <div className="flex gap-1">
+
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span
+                  key={star}
+                  onClick={() => !ratingLoading && submitFeedback(c.id, star)}
+                  onMouseEnter={() => !ratingLoading && setHover(star)}
+                  onMouseLeave={() => !ratingLoading && setHover(0)}
+                  className={`text-xl transition duration-200 ${
+                    ratingLoading
+                      ? "cursor-not-allowed opacity-50"
+                      : "cursor-pointer"
+                } ${
+                  star <= (hover || 0)
+                    ? "text-yellow-400 scale-110"
+                    : "text-gray-400"
+                }`}
+                >
+                  ★
+                </span>                
+              ))}
+
+            </div>
+          )}
+
+        </div>
+      )}
 
       {/* ⚙ ACTION BUTTONS */}
       {onUpdate && (

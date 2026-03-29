@@ -7,18 +7,26 @@ export default function Login() {
   const navigate = useNavigate();
 
   const [data, setData] = useState({
-    name: "",
-    email_or_phone: "",
+    username: "",
     password: ""
   });
 
   const login = async () => {
     try {
-      const res = await API.post("/auth/login", data);
-
-      if (res.data.error) {
-        return toast.error(res.data.error);
+      if (!data.username || !data.password) {
+        return toast.error("Enter credentials");
       }
+
+      // ✅ CONVERT TO FORM DATA (IMPORTANT FIX)
+      const formData = new URLSearchParams();
+      formData.append("username", data.username);
+      formData.append("password", data.password);
+
+      const res = await API.post("/auth/login", formData, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      });
 
       localStorage.setItem("token", res.data.access_token);
       localStorage.setItem("role", res.data.role);
@@ -27,7 +35,8 @@ export default function Login() {
       toast.success("Login successful!");
       navigate("/dashboard");
 
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Login failed");
     }
   };
@@ -41,17 +50,15 @@ export default function Login() {
       }}
     >
 
-      {/* Overlay */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
 
-      {/* Card */}
       <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-3xl shadow-2xl w-80 text-white">
 
         <h2 className="text-3xl font-bold mb-6 text-center">
           Welcome Back 👋
         </h2>
 
-        {/* Input */}
+        {/* ✅ FIXED INPUT */}
         <input
           placeholder="Username / Email / Phone"
           onChange={(e)=>setData({...data, username:e.target.value})}
@@ -65,7 +72,6 @@ export default function Login() {
           className="w-full p-3 mb-4 rounded-xl bg-white/20 placeholder-white/70 text-white outline-none focus:ring-2 focus:ring-indigo-400"
         />
 
-        {/* Button */}
         <button
           onClick={login}
           className="w-full py-2 rounded-xl font-semibold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:scale-105 transition"
@@ -73,7 +79,6 @@ export default function Login() {
           Login 🚀
         </button>
 
-        {/* Signup */}
         <p className="text-sm mt-4 text-center">
           Don’t have an account?{" "}
           <span

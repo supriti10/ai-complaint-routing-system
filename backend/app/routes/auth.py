@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.database import get_db
 from app.models import User
-from app.schemas import UserCreate, UserLogin
+from app.schemas import UserCreate
 from app.auth import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -23,7 +24,6 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
 
-    # ✅ SAFE ROLE HANDLING
     role = user.role if user.role in ["user", "admin", "officer"] else "user"
 
     new_user = User(
@@ -41,12 +41,15 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     return {"message": "Signup successful"}
 
 
-# ✅ LOGIN (username OR email OR phone)
+# ✅ LOGIN (SWAGGER COMPATIBLE)
 @router.post("/login")
-def login(data: dict, db: Session = Depends(get_db)):
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
 
-    identifier = data.get("username") or data.get("email_or_phone")
-    password = data.get("password")
+    identifier = form_data.username
+    password = form_data.password
 
     if not identifier or not password:
         raise HTTPException(status_code=400, detail="Missing credentials")
@@ -55,22 +58,21 @@ def login(data: dict, db: Session = Depends(get_db)):
         or_(
             User.email == identifier,
             User.phone == identifier,
-            User.name == identifier   # 🔥 SUPPORT USERNAME
+            User.name == identifier
         )
     ).first()
 
     if not user or not verify_password(password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # 🔥 TOKEN
     token = create_access_token({
         "sub": str(user.id),
         "role": user.role
     })
 
     return {
-        "message": "Login successful",
         "access_token": token,
+        "token_type": "bearer",  # 🔥 IMPORTANT FOR SWAGGER
         "role": user.role,
-        "id": user.id   # 🔥 IMPORTANT (frontend needs this)
+        "id": user.id
     }
