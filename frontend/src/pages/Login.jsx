@@ -31,6 +31,7 @@ export default function Login() {
       localStorage.setItem("token", res.data.access_token);
       localStorage.setItem("role", res.data.role);
       localStorage.setItem("user_id", res.data.id);
+      localStorage.setItem("name", res.data.name);
 
       toast.success("Login successful!");
       navigate("/dashboard");

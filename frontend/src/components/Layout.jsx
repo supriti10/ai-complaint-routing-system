@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 
 export default function Layout({ children }) {
   const navigate = useNavigate();
+
   const role = localStorage.getItem("role");
+  const name = localStorage.getItem("name"); // 🔥 NEW
 
   const [open, setOpen] = useState(true);
 
@@ -18,10 +20,14 @@ export default function Layout({ children }) {
     navigate("/");
   };
 
+  // 🔥 SAFE FALLBACKS (IMPORTANT)
+  const displayName = name || "User";
+  const initial = displayName.charAt(0).toUpperCase();
+
   return (
     <div className="relative flex h-screen overflow-hidden text-white">
 
-      {/* 🌌 INSANE BACKGROUND */}
+      {/* 🌌 BACKGROUND */}
       <div className="absolute inset-0 -z-10 
         bg-gradient-to-br from-black via-gray-900 to-black" />
 
@@ -69,18 +75,27 @@ export default function Layout({ children }) {
         {/* NAVBAR */}
         <div className="bg-gray-800 shadow p-4 flex justify-between items-center rounded-xl mx-4 mt-4">
 
+          {/* 🔥 LEFT TITLE */}
           <h2 className="font-semibold text-lg capitalize">
             {role} Dashboard
           </h2>
 
+          {/* 🔥 RIGHT USER INFO */}
           <div className="flex items-center gap-4">
 
-            <div className="bg-blue-500/20 px-3 py-1 rounded-full text-sm">
+            {/* ROLE BADGE */}
+            <div className="bg-blue-500/20 px-3 py-1 rounded-full text-sm capitalize">
               {role}
             </div>
 
-            <div className="w-8 h-8 bg-blue-500 flex items-center justify-center rounded-full">
-              {role?.[0]?.toUpperCase()}
+            {/* USERNAME */}
+            <div className="hidden md:block font-medium">
+              {displayName}
+            </div>
+
+            {/* AVATAR */}
+            <div className="w-8 h-8 bg-blue-500 flex items-center justify-center rounded-full font-bold">
+              {initial}
             </div>
 
           </div>

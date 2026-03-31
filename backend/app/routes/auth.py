@@ -74,5 +74,6 @@ def login(
         "access_token": token,
         "token_type": "bearer",  # 🔥 IMPORTANT FOR SWAGGER
         "role": user.role,
-        "id": user.id
+        "id": user.id,
+        "name": user.name
     }

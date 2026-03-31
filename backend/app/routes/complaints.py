@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -13,7 +13,15 @@ from app.auth import get_current_active_user
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
 
-# ✅ Submit complaint (AI + FIXED + SAFE)
+# 🔥 LOCAL NORMALIZE (NO IMPORT ISSUES EVER)
+def normalize_text(text: str) -> str:
+    return " ".join(text.lower().strip().split())
+
+def simple_similarity(a: str, b: str):
+    import difflib
+    return difflib.SequenceMatcher(None, a, b).ratio()
+
+
 @router.post("/submit")
 def submit_complaint(
     complaint: ComplaintCreate,
@@ -21,43 +29,62 @@ def submit_complaint(
     user=Depends(get_current_active_user)
 ):
 
-    # 🔮 Predictions
-    department = predict_department(complaint.complaint_text)
-    priority = get_priority(complaint.complaint_text)
-
-    # 🔍 Fetch all complaints
+    user_id = int(user["sub"])
+    text = complaint.complaint_text.strip()
+    
     existing = db.query(Complaint).all()
-    texts = [c.complaint_text for c in existing]
 
-    # 🔍 Similarity check (SAFE VERSION)
-    # if not texts:
-    #     score = 0
-    #     existing_match = None
-    # else:
-    #     score, best_index = find_similar_complaint(
-    #         complaint.complaint_text,
-    #         texts
-    #     )
+    best_score = 0
+    existing_match = None
 
-    #     if (
-    #         best_index is not None
-    #         and isinstance(best_index, int)
-    #         and 0 <= best_index < len(existing)
-    #         and score >= 0.6
-    #     ):
-    #         existing_match = existing[best_index]
-    #     else:
-    #         existing_match = None
+    norm_text = normalize_text(text)
 
-    #     print("DEBUG → score:", score, "index:", best_index, "total:", len(existing))
+    for c in existing:
+        existing_text = normalize_text(c.complaint_text)
 
-    # 💾 ALWAYS SAVE (IMPORTANT)
+        # 🔥 EXACT MATCH (STRONGEST CHECK)
+        if norm_text == existing_text and int(c.user_id) == user_id:
+            return {
+                "blocked": True,
+                "saved": False,
+                "message": "You already submitted this complaint",
+                "similarity_score": 1.0,
+                "existing_id": int(c.id)
+            }
+
+        # 🔥 HYBRID SIMILARITY
+        ai_score, _ = find_similar_complaint(text, [c.complaint_text])
+
+        import difflib
+        text_score = difflib.SequenceMatcher(None, norm_text, existing_text).ratio()
+
+        final_score = max(ai_score, text_score)
+
+        if final_score > best_score:
+            best_score = final_score
+            existing_match = c
+
+    # =========================
+    # 🚨 SAME USER BLOCK (STRICT)
+    # =========================
+    if existing_match and int(existing_match.user_id) == user_id and best_score >= 0.5:
+        return {
+            "blocked": True,
+            "saved": False,
+            "message": "You already submitted this complaint",
+            "similarity_score": float(best_score),
+            "existing_id": int(existing_match.id)
+        }
+
+    # =========================
+    # 💾 SAVE
+    # =========================
     new_complaint = Complaint(
-        complaint_text=complaint.complaint_text,
-        predicted_department=department,
-        priority=priority,
+        complaint_text=text,
+        predicted_department=predict_department(text),
+        priority=get_priority(text),
         status="Pending",
-        user_id=int(user.get("sub")),
+        user_id=user_id,
         assigned_to=None
     )
 
@@ -65,21 +92,16 @@ def submit_complaint(
     db.commit()
     db.refresh(new_complaint)
 
-    # 🔥 RESPONSE LOGIC
     return {
-        "message": "Complaint submitted successfully",
-        "department": department,
-        "priority": priority,
+        "blocked": False,
+        "saved": True,
+        "message": "Complaint submitted",
 
-    #     # 🔥 AI OUTPUT
-    #     "duplicate": True if score >= 0.85 else False,
-    #     "warning": True if 0.6 <= score < 0.85 else False,
+        "similar": best_score >= 0.4,
+        "duplicate": best_score >= 0.6,
 
-    #     "similarity_score": float(score),
-    #     "existing_id": existing_match.id if existing_match else None,
-
-    #     # 🔥 SYSTEM
-    #     "assigned_to": None
+        "similarity_score": float(best_score),
+        "existing_id": int(existing_match.id) if existing_match else None
     }
 
 
@@ -112,8 +134,11 @@ def get_complaints(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_active_user)
 ):
-    # user_id = int(user.get("sub"))
-    user_id = int(user["sub"]) if user and "sub" in user else None
+
+    if not user or "sub" not in user:
+        raise HTTPException(status_code=401, detail="Invalid user")
+
+    user_id = int(user["sub"])
 
     complaints = db.query(Complaint).filter(
         Complaint.user_id == user_id
@@ -150,3 +175,4 @@ def give_feedback(data: dict, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Feedback saved"}
+

@@ -9,7 +9,7 @@ export default function UserDashboard() {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // ✅ SUBMIT (CLEAN + RELIABLE)
+  // ✅ SUBMIT (FIXED SIMILARITY DISPLAY)
   const submit = async () => {
     try {
       if (!text) return toast.error("Enter complaint");
@@ -20,27 +20,31 @@ export default function UserDashboard() {
         complaint_text: text
       });
   
-      // 🔥 HANDLE DUPLICATE / WARNING (NO setMessages here)
-      if (res.data.duplicate) {
-        toast.error(
-          `⚠️ Similar complaint (${(res.data.similarity_score * 100).toFixed(1)}%)`
-        );
+      console.log("RESPONSE:", res.data);
+  
+      // 🚨 BLOCKED → DO NOT REFRESH
+      if (res.data.blocked) {
+        toast.error(res.data.message);
+        return; // 🔥 STOP HERE
       }
   
-      if (res.data.warning) {
-        toast(
-          `⚠️ Similar complaint exists (${(res.data.similarity_score * 100).toFixed(1)}%)`
-        );
+      const score = res.data.similarity_score ?? 0;
+  
+      if (res.data.duplicate) {
+        toast.error(`⚠️ Highly similar complaint (${score.toFixed(2)})`);
+      } else if (res.data.similar) {
+        toast(`⚠️ Similar complaint exists (${score.toFixed(2)})`);
+      } else {
+        toast.success("Complaint submitted 🚀");
       }
   
       setText("");
   
+      // ✅ ONLY REFRESH IF ACTUALLY SAVED
       await fetchData();
   
-      toast.success("Complaint submitted 🚀");
-  
     } catch (err) {
-      console.error("Submit error:", err);
+      console.error("Submit error:", err?.response?.data || err);
       toast.error("Submission failed");
     } finally {
       setLoading(false);
