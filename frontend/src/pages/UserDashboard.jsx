@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import API from "../api";
 import Layout from "../components/Layout";
 import ComplaintCard from "../components/ComplaintCard";
@@ -8,125 +8,195 @@ export default function UserDashboard() {
   const [text, setText] = useState("");
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [similarComplaint, setSimilarComplaint] = useState(null);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
-  // ✅ SUBMIT (FIXED SIMILARITY DISPLAY)
+  const complaintRefs = useRef({});
+
+  const filterOptions = [
+    { label: "All", value: "all" },
+    { label: "Pending", value: "Pending" },
+    { label: "Assigned", value: "Assigned" },
+    { label: "In Progress", value: "In Progress" },
+    { label: "Resolved", value: "Resolved" }
+  ];
+
   const submit = async () => {
     try {
-      if (!text) return toast.error("Enter complaint");
-  
+      if (!text.trim()) return toast.error("Enter complaint");
+
       setLoading(true);
-  
+
       const res = await API.post("/complaints/submit", {
-        complaint_text: text
+        complaint_text: text.trim()
       });
-  
-      console.log("RESPONSE:", res.data);
-  
-      // 🚨 BLOCKED → DO NOT REFRESH
-      if (res.data.blocked) {
-        toast.error(res.data.message);
-        return; // 🔥 STOP HERE
+
+      const data = res.data;
+
+      if (data.blocked) {
+        toast.error(data.message);
+        return;
       }
-  
-      const score = res.data.similarity_score ?? 0;
-  
-      if (res.data.duplicate) {
-        toast.error(`⚠️ Highly similar complaint (${score.toFixed(2)})`);
-      } else if (res.data.similar) {
-        toast(`⚠️ Similar complaint exists (${score.toFixed(2)})`);
-      } else {
-        toast.success("Complaint submitted 🚀");
+
+      // 🔥 FIXED SIMILAR PANEL
+      if (data.similar && data.existing_id) {
+        setSimilarComplaint({
+          id: data.existing_id,
+          text: "A similar complaint already exists"
+        });
       }
-  
+
+      toast.success("Complaint submitted 🚀");
+
       setText("");
-  
-      // ✅ ONLY REFRESH IF ACTUALLY SAVED
-      await fetchData();
-  
+
+      if (data.saved) {
+        await fetchData();
+      }
+
     } catch (err) {
-      console.error("Submit error:", err?.response?.data || err);
       toast.error("Submission failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ FETCH
   const fetchData = async () => {
-    try {
-      const res = await API.get("/complaints/my");
-      setComplaints(res.data);
-    } catch (err) {
-      console.error("Fetch error:", err);
-    }
+    const res = await API.get("/complaints/my");
+    setComplaints(res.data);
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  const scrollToComplaint = (id) => {
+    const el = complaintRefs.current[id];
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   return (
     <Layout>
 
-      {/* 🔥 HERO */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 text-white p-8 rounded-3xl mb-8 shadow-xl">
-        <div className="absolute inset-0 bg-white/10 backdrop-blur-xl"></div>
-
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold mb-2">Welcome 👋</h1>
-          <p className="text-white/90 text-lg">
-            Submit and track your complaints easily!
-          </p>
-        </div>
+      {/* HERO */}
+      <div 
+        id="top-section"
+        className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 rounded-3xl mb-8"
+      >
+        <h1 className="text-3xl font-bold">Welcome 👋</h1>
+        <p>Submit and track your complaints easily!</p>
       </div>
 
-      {/* 🔥 SUBMIT BOX */}
-      <div className="bg-white/70 backdrop-blur-lg border border-gray-200 p-6 rounded-3xl shadow-lg mb-8">
-
+      {/* SUBMIT */}
+      <div className="bg-white/70 p-6 rounded-3xl mb-6">
         <textarea
           value={text}
           onChange={(e)=>setText(e.target.value)}
-          className="w-full p-4 rounded-xl outline-none
-          bg-white text-black
-          border border-gray-300
-          placeholder-gray-500"
-          placeholder="Describe your issue in detail..."
+          className="w-full p-4 rounded-xl text-black border"
+          placeholder="Describe your issue..."
         />
 
         <button 
           onClick={submit}
           disabled={loading}
-          className={`mt-4 px-6 py-2 rounded-xl text-white font-medium shadow-md transition ${
-            loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:scale-105"
-          }`}
+          className="mt-4 px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-pink-500"
         >
           {loading ? "Submitting..." : "Submit Complaint 🚀"}
         </button>
-
       </div>
 
-      {/* 🔥 HEADER */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-purple/50">
+      {/* 🔥 SIMILAR PANEL */}
+      {similarComplaint && (
+        <div className="bg-yellow-100 text-black p-4 rounded-xl mb-6">
+          <h3 className="font-bold">⚠️ Similar Complaint Found</h3>
+
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={() => scrollToComplaint(similarComplaint.id)}
+              className="px-3 py-1 bg-blue-500 text-white rounded"
+            >
+              View
+            </button>
+
+            <button
+              onClick={() => setSimilarComplaint(null)}
+              className="underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔍 RESPONSIVE SEARCH */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
+
+        {/* LEFT: TITLE */}
+        <h2 className="text-xl font-bold flex items-center gap-2">
           📋 My Complaints
         </h2>
-        <span className="text-sm text-gray-500">
-          {complaints.length} total
-        </span>
+
+        {/* RIGHT: SEARCH */}
+        <div className="relative w-full md:w-80">
+
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            🔍
+          </span>
+
+          <input
+            type="text"
+            placeholder="Search..."
+            value={search}
+            onChange={(e)=>setSearch(e.target.value)}
+            className="
+              w-full
+              pl-9 pr-3 py-2.5
+              rounded-xl
+              bg-white/80
+              text-black
+              border border-gray-300
+              shadow-sm
+
+              focus:outline-none
+              focus:ring-2
+              focus:ring-purple-500
+            "
+          />
+
+        </div>
+
       </div>
 
-      {/* 🔥 LIST */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {complaints.length === 0 && (
-          <p className="text-gray-500">No complaints yet</p>
-        )}
+      {/* FILTERS */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {filterOptions.map(f => (
+          <button
+            key={f.value}
+            onClick={() => setFilter(f.value)}
+            className={`px-3 py-1 rounded-full ${
+              filter === f.value ? "bg-purple-500 text-white" : "bg-gray-200 text-black"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
-        {complaints.map(c => (
-          <div key={c.id} className="hover:scale-[1.02] transition">
-            <ComplaintCard c={c} />
-          </div>
+      {/* LIST */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {complaints
+          .filter(c =>
+            (filter === "all" || c.status === filter) &&
+            c.complaint_text.toLowerCase().includes(search.toLowerCase())
+          )
+          .map(c => (
+            <div
+              key={c.id}
+              ref={el => (complaintRefs.current[c.id] = el)}
+            >
+              <ComplaintCard c={c} />
+            </div>
         ))}
       </div>
 

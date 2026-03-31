@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Complaint
+from app.models import Complaint, User
 from app.auth import get_current_officer
 
 router = APIRouter(prefix="/officer", tags=["Officer"])
@@ -15,39 +15,39 @@ def get_assigned_complaints(
 ):
     officer_id = int(user.get("sub"))
 
-    # 🔥 Assigned complaints
-    assigned = db.query(Complaint).filter(
+    from app.models import Complaint, User
+
+    # 🔥 JOIN WITH USER TABLE
+    assigned = db.query(Complaint, User).join(
+        User, Complaint.user_id == User.id
+    ).filter(
         Complaint.assigned_to == officer_id
     ).order_by(Complaint.id.desc()).all()
 
-    # 🔥 Unassigned complaints
-    unassigned = db.query(Complaint).filter(
+    unassigned = db.query(Complaint, User).join(
+        User, Complaint.user_id == User.id
+    ).filter(
         Complaint.assigned_to == None
     ).order_by(Complaint.id.desc()).all()
 
-    return {
-        "assigned": [
-            {
-                "id": c.id,
-                "complaint_text": c.complaint_text,
-                "predicted_department": c.predicted_department,
-                "priority": c.priority,
-                "status": c.status,
-            }
-            for c in assigned
-        ],
-        "unassigned": [
-            {
-                "id": c.id,
-                "complaint_text": c.complaint_text,
-                "predicted_department": c.predicted_department,
-                "priority": c.priority,
-                "status": c.status,
-            }
-            for c in unassigned
-        ]
-    }
+    # 🔥 SERIALIZER
+    def serialize(c, u):
+        return {
+            "id": c.id,
+            "complaint_text": c.complaint_text,
+            "predicted_department": c.predicted_department,
+            "priority": c.priority,
+            "status": c.status,
+            "user_id": c.user_id,
+            "username": u.name,   # ⚠️ change to u.username if needed
+            "created_at": str(c.created_at)
+        }
 
+    # 🔥 FINAL RESPONSE
+    return {
+        "assigned": [serialize(c, u) for c, u in assigned],
+        "unassigned": [serialize(c, u) for c, u in unassigned]
+    }
 
 # ✅ Update complaint
 @router.put("/complaints/{complaint_id}")
