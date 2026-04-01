@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import UserDashboard from "./pages/UserDashboard";
@@ -12,7 +14,7 @@ function App() {
     const token = localStorage.getItem("token");
 
     if (!token) {
-      return <Navigate to="/" />;
+      return <Navigate to="/login" />;
     }
 
     return children;
@@ -31,11 +33,14 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* Public Routes */}
-        <Route path="/" element={<Login />} />
+        {/* 🔥 HOME PAGE */}
+        <Route path="/" element={<Home />} />
+
+        {/* 🔓 PUBLIC ROUTES (NO PublicRoute WRAPPER) */}
+        <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* Protected Dashboard */}
+        {/* 🔐 PROTECTED DASHBOARD */}
         <Route
           path="/dashboard"
           element={
@@ -44,6 +49,9 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* 🔥 FALLBACK */}
+        <Route path="*" element={<Navigate to="/" />} />
 
       </Routes>
     </BrowserRouter>
