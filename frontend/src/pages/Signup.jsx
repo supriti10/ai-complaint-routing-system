@@ -18,7 +18,7 @@ export default function Signup() {
     try {
       await API.post("/auth/signup", data);
       toast.success("Signup successful!");
-      navigate("/");
+      navigate("/login");
     } catch {
       toast.error("Signup failed");
     }
@@ -40,7 +40,7 @@ export default function Signup() {
       <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-3xl shadow-2xl w-96 text-white">
 
         <h2 className="text-3xl font-bold mb-6 text-center">
-          Create Account ✨
+          Create Account !!
         </h2>
 
         <input
@@ -82,13 +82,13 @@ export default function Signup() {
           onClick={signup}
           className="w-full py-2 mt-4 rounded-xl font-semibold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:scale-105 transition"
         >
-          Signup 🚀
+          Signup
         </button>
 
         <p className="text-sm mt-4 text-center">
           Already have an account?{" "}
           <span
-            onClick={()=>navigate("/")}
+            onClick={()=>navigate("/login")}
             className="text-indigo-300 cursor-pointer hover:underline font-semibold"
           >
             Login

@@ -129,10 +129,10 @@ export default function AdminDashboard() {
       {/* HEADER */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white">
-          👑 Admin Control Center
+          Admin Control Center
         </h1>
         <p className="text-gray-400">
-          Smart complaint management system
+          Monitor system-wide activity, analyze complaint trends, and intelligently assign or redistribute workload across officers.
         </p>
       </div>
 

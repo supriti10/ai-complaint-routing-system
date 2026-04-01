@@ -83,8 +83,8 @@ export default function OfficerDashboard() {
 
       {/* HEADER */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">🚀 Officer Control Panel</h1>
-        <p className="text-gray-400">Handle complaints efficiently</p>
+        <h1 className="text-3xl font-bold">Officer Control Panel</h1>
+        <p className="text-gray-400">Manage assigned complaints efficiently with priority sorting, quick actions, and performance insights.</p>
       </div>
 
       {/* 🔥 PERFORMANCE PANEL */}

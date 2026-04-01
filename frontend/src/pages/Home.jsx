@@ -77,7 +77,7 @@ export default function Home() {
         </h1>
 
         <p className="text-gray-300 max-w-2xl mb-6">
-          Automatically classify, prioritize and assign complaints using AI.
+          Intelligent complaint management system powered by AI to automatically understand, classify and route user complaints with high accuracy, ensuring faster resolution and improved citizen satisfaction.
         </p>
 
         <div className="flex gap-4">
@@ -117,9 +117,9 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-6">
 
           {[
-            ["🤖 AI Classification", "Auto detects complaint category"],
-            ["⚡ Smart Assignment", "Assigns least busy officer"],
-            ["📊 Analytics", "Track performance"]
+            ["1. AI Classification", "Auto detects complaint category"],
+            ["2. Smart Assignment", "Assigns least busy officer"],
+            ["3. Analytics", "Track performance"]
           ].map((f, i) => (
             <div key={i} className="bg-white/10 p-6 rounded-xl backdrop-blur hover:scale-105 transition">
               <h3 className="font-semibold mb-2">{f[0]}</h3>
@@ -171,18 +171,18 @@ export default function Home() {
       <div className="px-6 md:px-12 py-16">
 
         <h2 className="text-3xl font-bold text-center mb-10">
-          🚀 Future Scope
+          Future Scope
         </h2>
 
         <div className="grid md:grid-cols-3 gap-6">
 
           {[
-            ["🧠 Complaint Clustering", "Merge similar complaints automatically"],
-            ["📊 Predictive Analytics", "Forecast complaint spikes"],
-            ["🤖 AI Chatbot", "Instant complaint assistant"],
-            ["📍 Geo Tracking", "Location-based insights"],
-            ["🔔 Notifications", "Real-time updates"],
-            ["⚖️ SLA Monitoring", "Track resolution deadlines"]
+            ["Complaint Clustering", "Merge similar complaints automatically"],
+            ["Predictive Analytics", "Forecast complaint spikes"],
+            ["AI Chatbot", "Instant complaint assistant"],
+            ["Geo Tracking", "Location-based insights"],
+            ["Notifications", "Real-time updates"],
+            ["SLA Monitoring", "Track resolution deadlines"]
           ].map((item, i) => (
             <div key={i} className="bg-white/10 p-6 rounded-xl backdrop-blur hover:scale-105 transition">
               <h3 className="font-semibold mb-2">{item[0]}</h3>
@@ -228,7 +228,7 @@ export default function Home() {
           />
 
           <button className="bg-gradient-to-r from-indigo-500 to-purple-500 py-2 rounded hover:scale-105 transition">
-            Send Message 🚀
+            Send Message !!
           </button>
 
         </form>

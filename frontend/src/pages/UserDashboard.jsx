@@ -84,7 +84,7 @@ export default function UserDashboard() {
         id="top-section"
         className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 rounded-3xl mb-8"
       >
-        <h1 className="text-3xl font-bold">Welcome 👋</h1>
+        <h1 className="text-3xl font-bold">Welcome !!</h1>
         <p>Submit and track your complaints easily!</p>
       </div>
 
@@ -134,7 +134,7 @@ export default function UserDashboard() {
 
         {/* LEFT: TITLE */}
         <h2 className="text-xl font-bold flex items-center gap-2">
-          📋 My Complaints
+          ~ My Complaints
         </h2>
 
         {/* RIGHT: SEARCH */}

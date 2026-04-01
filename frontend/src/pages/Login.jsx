@@ -8,7 +8,8 @@ export default function Login() {
 
   const [data, setData] = useState({
     username: "",
-    password: ""
+    password: "",
+    role: "user" // 🔥 DEFAULT
   });
 
   const login = async () => {
@@ -17,7 +18,6 @@ export default function Login() {
         return toast.error("Enter credentials");
       }
 
-      // ✅ CONVERT TO FORM DATA (IMPORTANT FIX)
       const formData = new URLSearchParams();
       formData.append("username", data.username);
       formData.append("password", data.password);
@@ -27,6 +27,11 @@ export default function Login() {
           "Content-Type": "application/x-www-form-urlencoded"
         }
       });
+
+      // 🔥 OPTIONAL ROLE CHECK (UX clarity)
+      if (res.data.role !== data.role) {
+        return toast.error(`You are not registered as ${data.role}`);
+      }
 
       localStorage.setItem("token", res.data.access_token);
       localStorage.setItem("role", res.data.role);
@@ -56,10 +61,21 @@ export default function Login() {
       <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 p-8 rounded-3xl shadow-2xl w-80 text-white">
 
         <h2 className="text-3xl font-bold mb-6 text-center">
-          Welcome Back 👋
+          Welcome Back
         </h2>
 
-        {/* ✅ FIXED INPUT */}
+        {/* 🔥 ROLE DROPDOWN */}
+        <select
+          value={data.role}
+          onChange={(e)=>setData({...data, role:e.target.value})}
+          className="w-full p-3 mb-3 rounded-xl bg-white/20 text-white outline-none"
+        >
+          <option value="user">Login as User</option>
+          <option value="officer">Login as Officer</option>
+          <option value="admin">Login as Admin</option>
+        </select>
+
+        {/* INPUTS */}
         <input
           placeholder="Username / Email / Phone"
           onChange={(e)=>setData({...data, username:e.target.value})}
@@ -77,7 +93,7 @@ export default function Login() {
           onClick={login}
           className="w-full py-2 rounded-xl font-semibold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:scale-105 transition"
         >
-          Login 🚀
+          Login
         </button>
 
         <p className="text-sm mt-4 text-center">
