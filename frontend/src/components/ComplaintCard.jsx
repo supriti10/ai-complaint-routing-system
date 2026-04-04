@@ -134,7 +134,7 @@ export default function ComplaintCard({ c, onUpdate }) {
                        bg-gradient-to-r from-blue-500 to-indigo-600
                        hover:scale-105 transition shadow"
           >
-            Start 🚀
+            Start
           </button>
 
           <button
@@ -143,7 +143,7 @@ export default function ComplaintCard({ c, onUpdate }) {
                        bg-gradient-to-r from-green-500 to-emerald-600
                        hover:scale-105 transition shadow"
           >
-            Resolve ✅
+            Resolve
           </button>
 
         </div>

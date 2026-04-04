@@ -119,7 +119,7 @@ export default function OfficerDashboard() {
       </select>
 
       {/* ASSIGNED */}
-      <h2 className="text-xl font-bold mb-3">📌 My Complaints</h2>
+      <h2 className="text-xl font-bold mb-3">~ My Complaints</h2>
 
       <div className="grid md:grid-cols-2 gap-6">
         {filtered.map(c => (
@@ -218,7 +218,7 @@ export default function OfficerDashboard() {
                 onClick={()=>takeComplaint(c.id)}
                 className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500"
               >
-                Take
+                Accept
               </button>
 
             </div>

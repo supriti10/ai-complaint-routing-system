@@ -8,7 +8,12 @@ export default function UserDashboard() {
   const [text, setText] = useState("");
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [similarComplaint, setSimilarComplaint] = useState(null);
+
+  // 🔥 NEW STATES
+  const [similarComplaintId, setSimilarComplaintId] = useState(null);
+  const [similarList, setSimilarList] = useState([]);
+  const [showSimilar, setShowSimilar] = useState(false);
+
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
 
@@ -22,6 +27,9 @@ export default function UserDashboard() {
     { label: "Resolved", value: "Resolved" }
   ];
 
+  // =====================
+  // 🚀 SUBMIT
+  // =====================
   const submit = async () => {
     try {
       if (!text.trim()) return toast.error("Enter complaint");
@@ -39,15 +47,14 @@ export default function UserDashboard() {
         return;
       }
 
-      // 🔥 FIXED SIMILAR PANEL
+      // 🔥 SET SIMILAR ID (NOT OBJECT)
       if (data.similar && data.existing_id) {
-        setSimilarComplaint({
-          id: data.existing_id,
-          text: "A similar complaint already exists"
-        });
+        setSimilarComplaintId(data.existing_id);
+      } else {
+        setSimilarComplaintId(null);
       }
 
-      toast.success("Complaint submitted 🚀");
+      toast.success("Complaint submitted");
 
       setText("");
 
@@ -62,6 +69,9 @@ export default function UserDashboard() {
     }
   };
 
+  // =====================
+  // 🔥 FETCH USER DATA
+  // =====================
   const fetchData = async () => {
     const res = await API.get("/complaints/my");
     setComplaints(res.data);
@@ -71,19 +81,25 @@ export default function UserDashboard() {
     fetchData();
   }, []);
 
-  const scrollToComplaint = (id) => {
-    const el = complaintRefs.current[id];
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  // =====================
+  // 🔥 FETCH SIMILAR
+  // =====================
+  const fetchSimilar = async (id) => {
+    try {
+      const res = await API.get(`/complaints/similar/${id}`);
+      setSimilarList(res.data || []);
+      setShowSimilar(true);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load similar complaints");
+    }
   };
 
   return (
     <Layout>
 
       {/* HERO */}
-      <div 
-        id="top-section"
-        className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 rounded-3xl mb-8"
-      >
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 rounded-3xl mb-8">
         <h1 className="text-3xl font-bold">Welcome !!</h1>
         <p>Submit and track your complaints easily!</p>
       </div>
@@ -102,29 +118,75 @@ export default function UserDashboard() {
           disabled={loading}
           className="mt-4 px-6 py-2 rounded-xl text-white bg-gradient-to-r from-indigo-500 to-pink-500"
         >
-          {loading ? "Submitting..." : "Submit Complaint 🚀"}
+          {loading ? "Submitting..." : "Submit Complaint"}
         </button>
       </div>
 
-      {/* 🔥 SIMILAR PANEL */}
-      {similarComplaint && (
+      {/* 🔥 SIMILAR ALERT PANEL */}
+      {similarComplaintId && !showSimilar && (
         <div className="bg-yellow-100 text-black p-4 rounded-xl mb-6">
           <h3 className="font-bold">⚠️ Similar Complaint Found</h3>
 
           <div className="flex gap-3 mt-2">
             <button
-              onClick={() => scrollToComplaint(similarComplaint.id)}
+              onClick={() => fetchSimilar(similarComplaintId)}
               className="px-3 py-1 bg-blue-500 text-white rounded"
             >
               View
             </button>
 
             <button
-              onClick={() => setSimilarComplaint(null)}
+              onClick={() => setSimilarComplaintId(null)}
               className="underline"
             >
               Dismiss
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 SIMILAR LIST */}
+      {showSimilar && (
+        <div className="bg-gray-800 p-6 rounded-xl mb-6">
+
+          <div className="flex justify-between mb-4">
+            <h3 className="font-bold text-white text-lg">
+              Similar Complaints
+            </h3>
+
+            <button
+              onClick={() => setShowSimilar(false)}
+              className="text-red-400"
+            >
+              Close
+            </button>
+          </div>
+
+          {similarList.length === 0 && (
+            <p className="text-gray-400">No similar complaints found</p>
+          )}
+
+          <div className="space-y-3">
+            {similarList.map((c) => (
+              <div key={c.id} className="bg-gray-700 p-4 rounded-lg">
+
+                {/* 🔒 PRIVACY SAFE */}
+                <p className="text-white mb-1">
+                  {c.complaint_text}
+                </p>
+
+                <p className="text-sm text-gray-400">
+                  Submitted on{" "}
+                  {new Date(c.created_at).toLocaleDateString("en-GB")} at{" "}
+                  {new Date(c.created_at).toLocaleTimeString("en-GB")}
+                </p>
+
+                <p className="text-xs text-indigo-300">
+                  Similarity: {c.similarity}
+                </p>
+
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -188,13 +250,10 @@ export default function UserDashboard() {
         {complaints
           .filter(c =>
             (filter === "all" || c.status === filter) &&
-            c.complaint_text.toLowerCase().includes(search.toLowerCase())
+            (c.complaint_text || "").toLowerCase().includes(search.toLowerCase())
           )
           .map(c => (
-            <div
-              key={c.id}
-              ref={el => (complaintRefs.current[c.id] = el)}
-            >
+            <div key={c.id}>
               <ComplaintCard c={c} />
             </div>
         ))}

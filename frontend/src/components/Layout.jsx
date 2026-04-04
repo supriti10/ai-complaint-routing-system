@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 
 export default function Layout({ children }) {
   const navigate = useNavigate();
