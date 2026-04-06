@@ -3,7 +3,7 @@ import API from "../api";
 import toast from "react-hot-toast";
 import { useState } from "react";
 
-export default function ComplaintCard({ c, onUpdate }) {
+export default function ComplaintCard({ c, onUpdate, fetchData }) {
   const [hover, setHover] = useState(0);
   const [ratingLoading, setRatingLoading] = useState(false);
 
@@ -24,7 +24,7 @@ export default function ComplaintCard({ c, onUpdate }) {
       // ✅ SUCCESS if request didn't throw
       toast.success("Feedback submitted");
   
-      await fetchData(); // 🔥 refresh UI
+      if (fetchData) fetchData(); // 🔥 refresh UI
   
     } catch (err) {
       console.error("FEEDBACK ERROR:", err);

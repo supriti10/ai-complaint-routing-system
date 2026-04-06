@@ -254,7 +254,7 @@ export default function UserDashboard() {
           )
           .map(c => (
             <div key={c.id}>
-              <ComplaintCard c={c} />
+              <ComplaintCard c={c} fetchData={fetchData} />
             </div>
         ))}
       </div>
