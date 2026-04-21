@@ -1,16 +1,171 @@
-# React + Vite
+# Grievix AI — AI-Based Complaint Routing System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
 
-Currently, two official plugins are available:
+Grievix AI is an intelligent grievance redressal platform that automates complaint intake, classification, prioritization, duplicate detection, routing, and tracking.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The system combines a React frontend, Python/FastAPI backend, machine learning (fine-tuned BERT for complaint classification and semantic similarity), and SQLite for persistence.
 
-## React Compiler
+It supports role-based workflows for:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* Users (submit and track complaints)
+* Officers (manage assigned complaints)
+* Administrators (assign, monitor, analyze workload)
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Core Features
+
+### AI-Powered Complaint Classification
+
+* Fine-tuned BERT model categorizes complaints into departments
+* Automatically predicts routing destination
+* Reduces manual triaging
+
+### Priority Detection
+
+* Assigns complaint priority (HIGH / MEDIUM / LOW)
+* Helps officers address urgent issues first
+
+### Semantic Similarity / Duplicate Detection
+
+* Detects duplicate or similar complaints
+* Prevents redundant submissions from the same user
+* Shows similar complaint references while preserving privacy
+
+### Smart Complaint Assignment
+
+* Manual assignment by admin
+* Auto-assign based on officer workload balancing
+
+### Role-Based Dashboards
+
+#### User Dashboard
+
+* Submit complaints
+* View complaint history
+* Search and filter complaints
+* View similar complaints
+* Submit feedback after resolution
+
+#### Officer Dashboard
+
+* View assigned complaints
+* Priority-based sorting
+* Update complaint status
+* View officer workload context
+
+#### Admin Dashboard
+
+* Complaint analytics
+* Officer workload monitoring
+* Manual reassignment
+* Auto assignment engine
+* Complaint search and filters
+
+### Analytics & Insights
+
+* Pending / Resolved / Assigned metrics
+* Complaint distribution charts
+* Officer workload visibility
+
+### Authentication & Access Control
+
+* Role-based login (User / Officer / Admin)
+* JWT authentication
+* Protected routes
+
+---
+
+## Tech Stack
+
+### Frontend
+
+* React
+* React Router
+* Axios
+* Tailwind CSS
+* Recharts
+
+### Backend
+
+* Python
+* FastAPI
+* SQLAlchemy
+* JWT Authentication
+
+### Machine Learning
+
+* Fine-tuned BERT
+* Semantic similarity engine
+
+### Database
+
+* SQLite3 (current)
+
+---
+
+## Project Structure (Example)
+
+```bash
+frontend/
+  src/
+    pages/
+    components/
+    api.js
+
+backend/
+  app/
+    main.py
+    models.py
+    database.py
+    routes/
+      auth.py
+      complaints.py
+      admin.py
+      officer.py
+```
+
+---
+
+## Installation
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Backend
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+---
+
+## Environment Variables
+
+### Frontend (.env)
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
+VITE_EMAILJS_SERVICE_ID=...
+VITE_EMAILJS_TEMPLATE_ID=...
+VITE_EMAILJS_PUBLIC_KEY=...
+```
+
+### Backend (.env)
+
+```env
+SECRET_KEY=your_secret
+DATABASE_URL=sqlite:///./grievance.db
+```
+
+---
